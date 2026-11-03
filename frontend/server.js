@@ -41,6 +41,8 @@ function startServer(port) {
     let urlPath = req.url.split('?')[0];
     if (urlPath === '/' || urlPath === '') {
       urlPath = '/index.html';
+    } else if (urlPath === '/hotel_management.html') {
+      urlPath = '/hotel-management.html';
     }
 
     // Decode URL
@@ -97,4 +99,3 @@ function startServer(port) {
 }
 
 startServer(requestedPort);
-

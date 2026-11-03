@@ -42,8 +42,8 @@ if ($Port -gt 0) { $env:SERVER_PORT = $Port }
 if (-not $env:DB_HOST)     { $env:DB_HOST = "localhost" }
 if (-not $env:DB_PORT)     { $env:DB_PORT = "5432" }
 if (-not $env:DB_NAME)     { $env:DB_NAME = "hotel_booking_db" }
-if (-not $env:DB_USERNAME) { $env:DB_USERNAME = "postgres" }
-if (-not $env:DB_PASSWORD) { $env:DB_PASSWORD = "postgres" }
+if (-not $env:DB_USERNAME) { $env:DB_USERNAME = "hotel_user" }
+if (-not $env:DB_PASSWORD) { $env:DB_PASSWORD = "hotel_secure_password_2025" }
 if (-not $env:SERVER_PORT) { $env:SERVER_PORT = "8080" }
 
 # Construct DB_URL if not set

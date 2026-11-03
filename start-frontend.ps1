@@ -76,6 +76,8 @@ try {
         $localPath = $request.Url.LocalPath
         if ($localPath -eq "/" -or [string]::IsNullOrWhiteSpace($localPath)) {
             $localPath = "/index.html"
+        } elseif ($localPath -eq "/hotel_management.html") {
+            $localPath = "/hotel-management.html"
         }
 
         $cleanPath = $localPath.TrimStart('/').Replace('/', '\')
