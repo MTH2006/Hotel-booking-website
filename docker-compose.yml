@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # ============================================================================
-  # 1. PostgreSQL Database Service
+  # 1. PostgreSQL Database Service [FR-1 to FR-96 Database Engine]
   # ============================================================================
   postgres:
     image: postgres:16-alpine
@@ -28,7 +28,29 @@ services:
       - hotel-network
 
   # ============================================================================
-  # 2. Spring Boot Backend API Service
+  # 2. pgAdmin 4 - Quản lý và Trình bày Database Trực quan
+  # ============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hotel-booking-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@hotelbooking.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-Admin@123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - ./database/pgadmin-servers.json:/pgadmin4/servers.json:ro
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # 3. Spring Boot Backend API Service
   # ============================================================================
   backend:
     build:
@@ -50,7 +72,7 @@ services:
       - hotel-network
 
   # ============================================================================
-  # 3. Frontend Web Service
+  # 4. Frontend Web Service
   # ============================================================================
   frontend:
     build:
@@ -60,6 +82,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     networks:
@@ -70,6 +94,8 @@ services:
 # ==============================================================================
 volumes:
   hotel_db_data:
+    driver: local
+  pgadmin_data:
     driver: local
 
 networks:

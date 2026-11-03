@@ -1,24 +1,598 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Quản lý khách sạn | HESTORA</title>
-  <link rel="icon" href="assets/images/hestora_logo.jpg"><link rel="stylesheet" href="css/hotel-management.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hệ thống Quản trị & Điều hành | HESTORA</title>
+  <link rel="icon" href="assets/images/hestora_logo.jpg">
+  <link rel="stylesheet" href="css/hotel-management.css">
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .badge-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+    .badge-status.success { color: #166534; background: #dcfce7; }
+    .badge-status.warning { color: #854d0e; background: #fef9c3; }
+    .badge-status.info { color: #1e40af; background: #dbeafe; }
+    .badge-status.danger { color: #991b1b; background: #fee2e2; }
+    .badge-status.neutral { color: #475569; background: #f1f5f9; }
+    .auth-banner { background: #fff8f1; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+  </style>
 </head>
 <body>
-  <aside class="sidebar"><a class="brand" href="index.html"><img src="assets/images/hestora_logo.jpg" alt=""><span>HESTORA<small>QUẢN LÝ KHÁCH SẠN</small></span></a><div class="side-label">KHÔNG GIAN LÀM VIỆC</div><a class="side-link" href="index.html">⌂　Tổng quan</a><a class="side-link selected" href="hotel-management.html">▦　Khách sạn</a><div class="sidebar-bottom"><span class="avatar">HT</span><span><b>Quản lý khách sạn</b><small>Chưa tích hợp phân quyền</small></span><span class="online"></span></div></aside>
-  <main class="main"><header><div class="breadcrumbs">Quản trị <span>/</span> Khách sạn</div><a class="back-link" href="index.html">← Về trang chủ</a></header>
-    <section class="intro"><div><div class="eyebrow">HỆ THỐNG HESTORA</div><h1>Quản lý khách sạn</h1><p>Theo dõi thông tin, tiện nghi và trạng thái kinh doanh của khách sạn.</p></div><button class="primary" id="addHotel">＋ Thêm khách sạn</button></section>
-    <section class="stats"><article><span>Tổng khách sạn</span><b id="totalCount">0</b><small>Trong hệ thống</small></article><article><span>Đang kinh doanh</span><b id="activeCount">0</b><small>Đang hiển thị</small></article><article><span>Đang ẩn</span><b id="hiddenCount">0</b><small>Ngừng kinh doanh</small></article><article><span>Chờ xác minh</span><b id="verifyCount">0</b><small>Hạng sao cần xác minh</small></article></section>
-    <section class="panel"><div class="toolbar"><div><h2>Danh sách khách sạn</h2><p>Quản lý hồ sơ và thông tin hiển thị trên nền tảng.</p></div><div class="filters"><label class="search">⌕ <input id="search" placeholder="Tìm tên hoặc địa chỉ..."></label><select id="statusFilter" aria-label="Lọc trạng thái"><option value="all">Tất cả trạng thái</option><option value="active">Đang kinh doanh</option><option value="hidden">Đang ẩn</option></select></div></div>
-      <div class="table-wrap"><table><thead><tr><th>KHÁCH SẠN</th><th>ĐỊA CHỈ</th><th>HẠNG SAO</th><th>LIÊN HỆ</th><th>TRẠNG THÁI</th><th></th></tr></thead><tbody id="hotelRows"></tbody></table><div id="empty" class="empty" hidden>Không tìm thấy khách sạn phù hợp.</div></div><footer><span id="resultCount"></span><span id="dataMode">Đang kết nối dữ liệu…</span></footer></section>
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <img src="assets/images/hestora_logo.jpg" alt="HESTORA">
+      <span>HESTORA<small>HỆ THỐNG QUẢN TRỊ</small></span>
+    </a>
+    <div class="side-label">PHÂN HỆ ĐIỀU HÀNH</div>
+    <a class="side-link" data-tab="tabDashboard" href="javascript:void(0)">⌂　Tổng quan & Báo cáo</a>
+    <a class="side-link selected" data-tab="tabHotels" href="javascript:void(0)">▦　Khách sạn</a>
+    <a class="side-link" data-tab="tabRooms" href="javascript:void(0)">🛏　Hạng phòng</a>
+    <a class="side-link" data-tab="tabBookings" href="javascript:void(0)">📋　Đơn đặt phòng</a>
+    <a class="side-link" data-tab="tabPromotions" href="javascript:void(0)">🏷　Mã khuyến mãi</a>
+    <a class="side-link" data-tab="tabUsers" href="javascript:void(0)">👥　Người dùng & Quyền</a>
+    <a class="side-link" data-tab="tabSupport" href="javascript:void(0)">💬　Hỗ trợ CSKH 24/7</a>
+    
+    <div class="sidebar-bottom">
+      <span class="avatar" id="userAvatar">HT</span>
+      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <b id="sidebarUserName">Quản trị viên</b>
+        <small id="sidebarUserRole">ADMIN</small>
+      </span>
+      <span class="online" title="Đang trực tuyến"></span>
+    </div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main class="main">
+    <header>
+      <div class="breadcrumbs">Quản trị <span>/</span> <span id="breadcrumbCurrent">Khách sạn</span></div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button id="btnSwitchAccount" class="secondary" style="padding: 6px 12px; font-size: 11px;">Đổi tài khoản</button>
+        <a class="back-link" href="index.html">← Về trang chủ</a>
+      </div>
+    </header>
+
+    <!-- Authentication Prompt Banner if not logged in -->
+    <div id="authPromptBanner" class="auth-banner" style="display: none;">
+      <div>
+        <strong style="color: #9a3412;">Chưa đăng nhập vai trò Quản trị / Nhân viên</strong>
+        <p style="margin: 4px 0 0; font-size: 11px; color: #7c2d12;">Bạn có thể bấm chọn tài khoản mẫu để thao tác kiểm thử ngay lập tức:</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="btnQuickLoginAdmin" class="primary" style="padding: 6px 12px; font-size: 11px;">Admin (Toàn quyền)</button>
+        <button id="btnQuickLoginStaff" class="secondary" style="padding: 6px 12px; font-size: 11px;">Staff (Lễ tân)</button>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB 1: TỔNG QUAN & BÁO CÁO (FR-85 to FR-90)
+         ========================================================================= -->
+    <section id="tabDashboard" class="tab-content">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">BÁO CÁO HOẠT ĐỘNG</div>
+          <h1>Tổng quan & Thống kê</h1>
+          <p>Hiệu suất kinh doanh, tỷ lệ lấp đầy phòng và tăng trưởng doanh thu.</p>
+        </div>
+        <button class="primary" id="btnExportStats">⭳ Xuất báo cáo thống kê</button>
+      </div>
+
+      <div class="stats">
+        <article>
+          <span>Doanh thu tích lũy</span>
+          <b id="statRevenue">0đ</b>
+          <small>Tất cả đơn hoàn tất</small>
+        </article>
+        <article>
+          <span>Tổng lượt đặt</span>
+          <b id="statTotalBookings">0</b>
+          <small>Toàn hệ thống</small>
+        </article>
+        <article>
+          <span>Đơn thành công</span>
+          <b id="statCompletedBookings">0</b>
+          <small>Đã hoàn tất lưu trú</small>
+        </article>
+        <article>
+          <span>Tỷ lệ lấp đầy</span>
+          <b id="statOccupancy">76.5%</b>
+          <small>Khả dụng trung bình</small>
+        </article>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Top khách sạn doanh thu cao nhất</h2>
+              <p>Dựa trên lượng khách xác nhận đặt phòng.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>KHÁCH SẠN</th>
+                  <th>SỐ ĐƠN</th>
+                  <th>DOANH THU</th>
+                </tr>
+              </thead>
+              <tbody id="topHotelsRows">
+                <tr><td>Grand Vista Hotel</td><td>48</td><td><b>88.800.000đ</b></td></tr>
+                <tr><td>Sunrise Resort Phú Quốc</td><td>35</td><td><b>87.500.000đ</b></td></tr>
+                <tr><td>Melia Vinpearl Nha Trang</td><td>26</td><td><b>72.800.000đ</b></td></tr>
+                <tr><td>The Lumiere Hotel</td><td>22</td><td><b>36.300.000đ</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Hạng phòng được ưa chuộng nhất</h2>
+              <p>Phân loại theo nhu cầu đặt của khách hàng.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>HẠNG PHÒNG</th>
+                  <th>HỆ SỐ GIÁ</th>
+                  <th>LƯỢT ĐẶT</th>
+                </tr>
+              </thead>
+              <tbody id="topRoomsRows">
+                <tr><td>Deluxe Hướng Biển (Ocean View)</td><td>1.25x</td><td><b>56 lượt</b></td></tr>
+                <tr><td>Phòng Tiêu Chuẩn (Standard)</td><td>1.00x</td><td><b>42 lượt</b></td></tr>
+                <tr><td>Suite Hoàng Gia (Presidential)</td><td>1.50x</td><td><b>28 lượt</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         TAB 2: QUẢN LÝ KHÁCH SẠN (FR-56 to FR-62)
+         ========================================================================= -->
+    <section id="tabHotels" class="tab-content active">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">DANH MỤC CƠ SỞ LƯU TRÚ</div>
+          <h1>Quản lý khách sạn</h1>
+          <p>Theo dõi hồ sơ, kiểm duyệt tiện nghi và đối soát thứ hạng sao.</p>
+        </div>
+        <button class="primary" id="addHotel">＋ Thêm khách sạn</button>
+      </div>
+
+      <div class="stats">
+        <article>
+          <span>Tổng khách sạn</span>
+          <b id="totalCount">0</b>
+          <small>Trong hệ thống</small>
+        </article>
+        <article>
+          <span>Đang kinh doanh</span>
+          <b id="activeCount">0</b>
+          <small>Đang hiển thị</small>
+        </article>
+        <article>
+          <span>Đang ẩn</span>
+          <b id="hiddenCount">0</b>
+          <small>Tạm ngừng đón khách</small>
+        </article>
+        <article>
+          <span>Chờ xác minh</span>
+          <b id="verifyCount">0</b>
+          <small>Cần đối soát sao</small>
+        </article>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Danh sách khách sạn</h2>
+            <p>Quản lý thông tin hiển thị trên nền tảng.</p>
+          </div>
+          <div class="filters">
+            <label class="search">⌕ <input id="search" placeholder="Tìm tên hoặc địa chỉ..."></label>
+            <select id="statusFilter" aria-label="Lọc trạng thái">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang kinh doanh</option>
+              <option value="hidden">Đang ẩn</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>KHÁCH SẠN</th>
+                <th>ĐỊA CHỈ</th>
+                <th>HẠNG SAO</th>
+                <th>LIÊN HỆ</th>
+                <th>TRẠNG THÁI</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="hotelRows"></tbody>
+          </table>
+          <div id="empty" class="empty" hidden>Không tìm thấy khách sạn phù hợp.</div>
+        </div>
+        <footer>
+          <span id="resultCount"></span>
+          <span id="dataMode">Đang kết nối dữ liệu…</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         TAB 3: QUẢN LÝ HẠNG PHÒNG (FR-63 to FR-70)
+         ========================================================================= -->
+    <section id="tabRooms" class="tab-content">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">QUẢN LÝ TÀI NGUYÊN LƯU TRÚ</div>
+          <h1>Quản lý phòng & Hạng phòng</h1>
+          <p>Thiết lập giá, sức chứa, số giường và tình trạng hoạt động thực tế.</p>
+        </div>
+        <button class="primary" id="btnAddRoom">＋ Thêm phòng mới</button>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Danh mục phòng</h2>
+            <p>Lọc theo cơ sở khách sạn và tình trạng buồng phòng.</p>
+          </div>
+          <div class="filters">
+            <select id="roomHotelFilter" style="min-width: 180px;">
+              <option value="all">Tất cả khách sạn</option>
+            </select>
+            <select id="roomStatusFilter">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="AVAILABLE">Trống (Sẵn sàng)</option>
+              <option value="OCCUPIED">Đang có khách</option>
+              <option value="MAINTENANCE">Đang bảo trì / Dọn</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>SỐ PHÒNG</th>
+                <th>KHÁCH SẠN</th>
+                <th>HẠNG PHÒNG</th>
+                <th>SỨC CHỨA</th>
+                <th>GIÁ / ĐÊM</th>
+                <th>TÌNH TRẠNG</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="roomRows"></tbody>
+          </table>
+          <div id="roomEmpty" class="empty" hidden>Chưa có thông tin phòng phù hợp.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         TAB 4: QUẢN LÝ ĐƠN ĐẶT PHÒNG (FR-71 to FR-78)
+         ========================================================================= -->
+    <section id="tabBookings" class="tab-content">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">ĐIỀU HÀNH NGHIỆP VỤ LỄ TÂN</div>
+          <h1>Quản lý đơn đặt phòng</h1>
+          <p>Xử lý tiếp nhận, xác nhận, thực hiện Check-in / Check-out và hủy đơn.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Danh sách đơn đặt</h2>
+            <p>Tra cứu theo mã đặt phòng, tên khách hàng hoặc số điện thoại.</p>
+          </div>
+          <div class="filters">
+            <label class="search">⌕ <input id="bookingSearchInput" placeholder="Mã HB-..., khách, SĐT..."></label>
+            <select id="bookingStatusFilter">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="PENDING">Chờ xác nhận</option>
+              <option value="CONFIRMED">Đã xác nhận</option>
+              <option value="COMPLETED">Đã hoàn tất</option>
+              <option value="CANCELLED">Đã hủy</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>MÃ ĐƠN</th>
+                <th>KHÁCH HÀNG</th>
+                <th>KHÁCH SẠN & PHÒNG</th>
+                <th>THỜI GIAN LƯU TRÚ</th>
+                <th>TỔNG TIỀN</th>
+                <th>THANH TOÁN</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="staffBookingRows"></tbody>
+          </table>
+          <div id="staffBookingEmpty" class="empty" hidden>Không tìm thấy đơn đặt phòng nào.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         TAB 5: QUẢN LÝ KHUYẾN MÃI (FR-54 to FR-55)
+         ========================================================================= -->
+    <section id="tabPromotions" class="tab-content">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">CHƯƠNG TRÌNH MARKETING & ƯU ĐÃI</div>
+          <h1>Quản lý mã khuyến mãi</h1>
+          <p>Tạo mã giảm giá, giới hạn ngân sách và theo dõi hiệu suất sử dụng.</p>
+        </div>
+        <button class="primary" id="btnAddPromo">＋ Thêm mã ưu đãi</button>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Danh sách Voucher / Khuyến mãi</h2>
+            <p>Quản lý các chương trình đang chạy hoặc đã kết thúc.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>MÃ ƯU ĐÃI</th>
+                <th>TIÊU ĐỀ CHƯƠNG TRÌNH</th>
+                <th>MỨC GIẢM</th>
+                <th>ĐƠN TỐI THIỂU</th>
+                <th>ĐÃ DÙNG</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="promoRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         TAB 6: QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN (FR-79 to FR-84)
+         ========================================================================= -->
+    <section id="tabUsers" class="tab-content">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">BẢO MẬT & PHÂN QUYỀN TRUY CẬP</div>
+          <h1>Quản lý tài khoản người dùng</h1>
+          <p>Thiết lập vai trò USER, STAFF, ADMIN và kiểm soát trạng thái hoạt động.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Danh sách tài khoản</h2>
+            <p>Tìm kiếm và phân quyền nhân sự hệ thống.</p>
+          </div>
+          <div class="filters">
+            <label class="search">⌕ <input id="userSearchInput" placeholder="Tìm tên hoặc email..."></label>
+            <select id="userRoleFilter">
+              <option value="all">Tất cả vai trò</option>
+              <option value="USER">Khách hàng (USER)</option>
+              <option value="STAFF">Nhân viên (STAFF)</option>
+              <option value="ADMIN">Quản trị viên (ADMIN)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>HỌ VÀ TÊN</th>
+                <th>EMAIL</th>
+                <th>SỐ ĐIỆN THOẠI</th>
+                <th>VAI TRÒ</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="userRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         TAB 7: HỖ TRỢ CSKH 24/7 (FR-94 to FR-96)
+         ========================================================================= -->
+    <section id="tabSupport" class="tab-content">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">TRUNG TÂM CSKH TRỰC TUYẾN</div>
+          <h1>Yêu cầu hỗ trợ khách hàng</h1>
+          <p>Tiếp nhận, xử lý khiếu nại và phản hồi yêu cầu đặt phòng của khách.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Danh sách yêu cầu hỗ trợ</h2>
+            <p>Theo dõi tiến độ xử lý của đội ngũ chăm sóc khách hàng.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>MÃ YÊU CẦU</th>
+                <th>KHÁCH HÀNG</th>
+                <th>LIÊN HỆ</th>
+                <th>TIÊU ĐỀ</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="supportRows"></tbody>
+          </table>
+          <div id="supportEmpty" class="empty" hidden>Hiện không có yêu cầu hỗ trợ nào đang chờ.</div>
+        </div>
+      </div>
+    </section>
+
   </main>
-  <dialog id="hotelDialog"><form id="hotelForm"><div class="dialog-head"><div><span class="eyebrow">HỒ SƠ KHÁCH SẠN</span><h2 id="dialogTitle">Thêm khách sạn</h2></div><button type="button" class="close" id="closeDialog" aria-label="Đóng">×</button></div><input type="hidden" name="id"><div class="form-grid">
-    <label class="wide">Tên khách sạn <em>*</em><input name="name" required placeholder="Ví dụ: Grand Vista Hotel"></label><label class="wide">Địa chỉ <em>*</em><input name="address" required placeholder="Số nhà, đường, quận, thành phố"></label><label>Số điện thoại<input name="phone" type="tel" placeholder="+84"></label><label>Email liên hệ<input name="email" type="email" placeholder="hotel@example.com"></label><label class="wide">Mô tả<textarea name="description" rows="3" placeholder="Giới thiệu về khách sạn"></textarea></label>
-    <fieldset class="wide"><legend>Hình ảnh <span>— mỗi đường dẫn trên một dòng</span></legend><textarea name="images" rows="3" placeholder="https://example.com/hotel.jpg"></textarea></fieldset>
-    <fieldset class="wide"><legend>Tiện nghi</legend><div class="amenities"><label><input type="checkbox" name="amenity" value="Wi-Fi"> Wi-Fi</label><label><input type="checkbox" name="amenity" value="Bãi đỗ xe"> Bãi đỗ xe</label><label><input type="checkbox" name="amenity" value="Hồ bơi"> Hồ bơi</label><label><input type="checkbox" name="amenity" value="Nhà hàng"> Nhà hàng</label></div></fieldset>
-    <label>Hạng sao<select name="stars"><option value="0">Chưa xác minh</option><option value="1">1 sao</option><option value="2">2 sao</option><option value="3">3 sao</option><option value="4">4 sao</option><option value="5">5 sao</option></select></label><label class="check-label"><input name="verified" type="checkbox"> Đã đối chiếu hạng sao với hồ sơ xác minh</label>
-    <label>Giờ nhận phòng<input name="checkin" type="time" value="14:00"></label><label>Giờ trả phòng<input name="checkout" type="time" value="12:00"></label><label class="wide">Chính sách hủy phòng<textarea name="cancellation" rows="2" placeholder="Điều kiện và thời hạn hủy phòng"></textarea></label><label class="wide">Quy định lưu trú<textarea name="stayPolicy" rows="2" placeholder="Quy định dành cho khách lưu trú"></textarea></label>
-    </div><div class="dialog-actions"><button type="button" class="secondary" id="cancelDialog">Hủy</button><button class="primary" type="submit">Lưu khách sạn</button></div></form></dialog>
-  <div id="toast" role="status" aria-live="polite"></div><script src="js/hotel-management.js"></script>
-</body></html>
+
+  <!-- =========================================================================
+       HOTEL DIALOG MODAL
+       ========================================================================= -->
+  <dialog id="hotelDialog">
+    <form id="hotelForm">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">HỒ SƠ KHÁCH SẠN</span>
+          <h2 id="dialogTitle">Thêm khách sạn</h2>
+        </div>
+        <button type="button" class="close" id="closeDialog" aria-label="Đóng">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <label class="wide">Tên khách sạn <em>*</em><input name="name" required placeholder="Ví dụ: Grand Vista Hotel"></label>
+        <label class="wide">Địa chỉ <em>*</em><input name="address" required placeholder="Số nhà, đường, quận, thành phố"></label>
+        <label>Số điện thoại<input name="phone" type="tel" placeholder="+84"></label>
+        <label>Email liên hệ<input name="email" type="email" placeholder="hotel@example.com"></label>
+        <label class="wide">Mô tả<textarea name="description" rows="3" placeholder="Giới thiệu về khách sạn"></textarea></label>
+        <fieldset class="wide">
+          <legend>Hình ảnh <span>— mỗi đường dẫn trên một dòng</span></legend>
+          <textarea name="images" rows="3" placeholder="assets/images/hotel_grand_vista.jpg"></textarea>
+        </fieldset>
+        <fieldset class="wide">
+          <legend>Tiện nghi</legend>
+          <div class="amenities">
+            <label><input type="checkbox" name="amenity" value="Wi-Fi"> Wi-Fi</label>
+            <label><input type="checkbox" name="amenity" value="Bãi đỗ xe"> Bãi đỗ xe</label>
+            <label><input type="checkbox" name="amenity" value="Hồ bơi"> Hồ bơi</label>
+            <label><input type="checkbox" name="amenity" value="Nhà hàng"> Nhà hàng</label>
+          </div>
+        </fieldset>
+        <label>Hạng sao
+          <select name="stars">
+            <option value="0">Chưa xác minh</option>
+            <option value="1">1 sao</option>
+            <option value="2">2 sao</option>
+            <option value="3">3 sao</option>
+            <option value="4">4 sao</option>
+            <option value="5">5 sao</option>
+          </select>
+        </label>
+        <label class="check-label">
+          <input name="verified" type="checkbox"> Đã đối chiếu hạng sao với hồ sơ xác minh
+        </label>
+        <label>Giờ nhận phòng<input name="checkin" type="time" value="14:00"></label>
+        <label>Giờ trả phòng<input name="checkout" type="time" value="12:00"></label>
+        <label class="wide">Chính sách hủy phòng<textarea name="cancellation" rows="2" placeholder="Điều kiện và thời hạn hủy phòng"></textarea></label>
+        <label class="wide">Quy định lưu trú<textarea name="stayPolicy" rows="2" placeholder="Quy định dành cho khách lưu trú"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="cancelDialog">Hủy</button>
+        <button class="primary" type="submit">Lưu khách sạn</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- =========================================================================
+       ROOM DIALOG MODAL
+       ========================================================================= -->
+  <dialog id="roomDialog">
+    <form id="roomForm">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">HẠNG PHÒNG LƯU TRÚ</span>
+          <h2 id="roomDialogTitle">Thêm phòng mới</h2>
+        </div>
+        <button type="button" class="close" id="closeRoomDialog" aria-label="Đóng">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <label>Khách sạn <em>*</em>
+          <select name="hotelId" id="roomModalHotelSelect" required></select>
+        </label>
+        <label>Số phòng / Mã phòng <em>*</em><input name="roomNumber" required placeholder="Ví dụ: P.301"></label>
+        <label>Hạng phòng <em>*</em>
+          <select name="type" required>
+            <option value="STANDARD">Phòng Tiêu Chuẩn (Standard)</option>
+            <option value="DELUXE">Phòng Sang Trọng (Deluxe Ocean View)</option>
+            <option value="SUITE">Phòng Tổng Thống (Presidential Suite)</option>
+          </select>
+        </label>
+        <label>Giá niêm yết / đêm (VNĐ) <em>*</em><input name="price" type="number" required min="100000" step="50000" value="1500000"></label>
+        <label>Sức chứa tối đa (người)<input name="capacity" type="number" value="2" min="1" max="10"></label>
+        <label>Trạng thái ban đầu
+          <select name="status">
+            <option value="AVAILABLE">Trống (Sẵn sàng đón khách)</option>
+            <option value="OCCUPIED">Đang có khách lưu trú</option>
+            <option value="MAINTENANCE">Đang bảo trì / Vệ sinh</option>
+          </select>
+        </label>
+        <label class="wide">Mô tả tiện nghi phòng<textarea name="description" rows="2" placeholder="Tầm nhìn, trang thiết bị đi kèm trong phòng..."></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="cancelRoomDialog">Hủy</button>
+        <button class="primary" type="submit">Lưu phòng</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- =========================================================================
+       PROMOTION DIALOG MODAL
+       ========================================================================= -->
+  <dialog id="promoDialog">
+    <form id="promoForm">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">MÃ ƯU ĐÃI</span>
+          <h2 id="promoDialogTitle">Thêm mã khuyến mãi mới</h2>
+        </div>
+        <button type="button" class="close" id="closePromoDialog" aria-label="Đóng">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <label>Mã Voucher (Code) <em>*</em><input name="code" required placeholder="HESTORA2026" style="text-transform:uppercase;"></label>
+        <label>Phần trăm giảm (%) <em>*</em><input name="discountPercent" type="number" required min="1" max="99" value="10"></label>
+        <label class="wide">Tiêu đề chương trình <em>*</em><input name="title" required placeholder="Chào mừng năm mới - Giảm ngay 10%"></label>
+        <label>Mức giảm tối đa (VNĐ)<input name="maxDiscountAmount" type="number" value="500000" step="50000"></label>
+        <label>Đơn tối thiểu áp dụng (VNĐ)<input name="minBookingAmount" type="number" value="1000000" step="100000"></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="cancelPromoDialog">Hủy</button>
+        <button class="primary" type="submit">Lưu mã ưu đãi</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Toast Notification -->
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Management Logic -->
+  <script src="js/hotel-management.js"></script>
+</body>
+</html>

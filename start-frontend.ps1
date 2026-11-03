@@ -3,25 +3,49 @@ param(
 )
 
 $frontendDir = Join-Path $PSScriptRoot "frontend"
-$url = "http://localhost:$Port/"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   HotelBooking - Khởi chạy Website trên cổng Port $Port  " -ForegroundColor Yellow
-Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " Thư mục web: $frontendDir" -ForegroundColor Gray
-Write-Host " Địa chỉ URL: $url" -ForegroundColor Green
+Write-Host "       HESTORA - Khởi chạy Website Khách sạn               " -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-# Start native HTTP Listener
-$listener = New-Object System.Net.HttpListener
-try {
-    $listener.Prefixes.Add($url)
-    $listener.Start()
-} catch {
-    Write-Host "[LỖI] Không thể lắng nghe trên cổng $Port (có thể cổng đang được sử dụng)." -ForegroundColor Red
-    Write-Host "Hãy thử chạy với cổng khác: .\start-frontend.ps1 -Port 3001" -ForegroundColor Yellow
+# Tự động tìm cổng khả dụng nếu cổng yêu cầu đang bận (ví dụ: bị nginx chiếm)
+$selectedPort = $Port
+$listener = $null
+$maxTries = 30
+
+for ($i = 0; $i -lt $maxTries; $i++) {
+    $currentPort = $Port + $i
+    $testUrl = "http://localhost:$currentPort/"
+    try {
+        $tempListener = New-Object System.Net.HttpListener
+        $tempListener.Prefixes.Add($testUrl)
+        $tempListener.Start()
+        $listener = $tempListener
+        $selectedPort = $currentPort
+        break
+    } catch {
+        if ($tempListener) {
+            try { $tempListener.Close() } catch {}
+        }
+    }
+}
+
+if (-not $listener) {
+    Write-Host "[LỖI] Không thể lắng nghe từ cổng $Port đến $($Port + $maxTries)." -ForegroundColor Red
+    Write-Host "Bạn có thể chạy bằng Node.js: node .\frontend\server.js" -ForegroundColor Yellow
     exit 1
 }
+
+$url = "http://localhost:$selectedPort/"
+if ($selectedPort -ne $Port) {
+    Write-Host "[THÔNG BÁO] Cổng $Port đang bị chiếm (bởi dịch vụ khác như nginx)." -ForegroundColor Yellow
+    Write-Host ">>> Đã tự động chuyển sang cổng khả dụng: $selectedPort" -ForegroundColor Green
+}
+
+Write-Host " Thư mục web: $frontendDir" -ForegroundColor Gray
+Write-Host " Địa chỉ URL: $url" -ForegroundColor Green
+Write-Host " Quản trị:    ${url}hotel-management.html" -ForegroundColor Cyan
+Write-Host "==========================================================" -ForegroundColor Cyan
 
 Write-Host ">>> Đang tự động mở trình duyệt web tại $url ..." -ForegroundColor Cyan
 Start-Process $url
@@ -52,6 +76,8 @@ try {
         $localPath = $request.Url.LocalPath
         if ($localPath -eq "/" -or [string]::IsNullOrWhiteSpace($localPath)) {
             $localPath = "/index.html"
+        } elseif ($localPath -eq "/hotel_management.html") {
+            $localPath = "/hotel-management.html"
         }
 
         $cleanPath = $localPath.TrimStart('/').Replace('/', '\')
@@ -69,7 +95,9 @@ try {
             $response.StatusCode = 200
         } else {
             $response.StatusCode = 404
-            $notFoundBytes = [System.Text.Encoding]::UTF8.GetBytes("404 Not Found: $localPath")
+            $notFoundHtml = "<!doctype html><html><head><meta charset='utf-8'><title>404</title></head><body style='font-family:sans-serif;text-align:center;padding:50px;'><h2>404 - Không tìm thấy trang</h2><p>Đường dẫn <code>$localPath</code> không tồn tại trên máy chủ HESTORA.</p><p><a href='/'>← Về Trang chủ</a> | <a href='/hotel-management.html'>Trang Quản trị</a></p></body></html>"
+            $notFoundBytes = [System.Text.Encoding]::UTF8.GetBytes($notFoundHtml)
+            $response.ContentType = "text/html; charset=utf-8"
             $response.OutputStream.Write($notFoundBytes, 0, $notFoundBytes.Length)
         }
         $response.Close()

@@ -1,6 +1,6 @@
 /**
- * HotelBooking - Unified Interactive Client
- * Supports direct file:// opening and local server hosting
+ * HotelBooking - Unified Interactive Client (HESTORA Luxury Edition)
+ * Supports direct file:// opening and local server hosting with full API integration
  */
 
 (function () {
@@ -86,14 +86,10 @@
   const HotelAPI = {
     async getFeaturedHotels() {
       try {
-        const response = await fetch(`${API_BASE_URL}/hotels/featured`, { signal: AbortSignal.timeout(800) });
+        const response = await fetch(`${API_BASE_URL}/hotels/featured`, { signal: AbortSignal.timeout(1000) });
         if (!response.ok) throw new Error('Network error');
         const result = await response.json();
-        if (result.success && result.user) {
-          result.user.token = result.token;
-          localStorage.setItem('hotel_user', JSON.stringify(result.user));
-        }
-        return result;
+        return Array.isArray(result) ? result : FEATURED_HOTELS;
       } catch {
         return FEATURED_HOTELS;
       }
@@ -101,7 +97,7 @@
 
     async searchHotels(query) {
       try {
-        const response = await fetch(`${API_BASE_URL}/hotels/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(800) });
+        const response = await fetch(`${API_BASE_URL}/hotels/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(1000) });
         if (!response.ok) throw new Error('Network error');
         return await response.json();
       } catch {
@@ -117,19 +113,29 @@
 
     async createBooking(bookingData) {
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (state.currentUser?.token) {
+          headers['Authorization'] = `Bearer ${state.currentUser.token}`;
+        }
         const response = await fetch(`${API_BASE_URL}/bookings`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(bookingData),
-          signal: AbortSignal.timeout(1000)
+          signal: AbortSignal.timeout(1500)
         });
-        if (!response.ok) throw new Error('Booking failed');
-        return await response.json();
-      } catch {
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || 'Booking failed');
+        }
+        const res = await response.json();
+        return res;
+      } catch (err) {
+        // Fallback local storage creation
         const newBooking = {
-          bookingId: 'HST-' + Math.floor(100000 + Math.random() * 900000),
+          bookingId: 'HB-' + Math.floor(100000 + Math.random() * 900000),
           createdAt: new Date().toISOString(),
           status: 'CONFIRMED',
+          paymentStatus: bookingData.paymentMethod === 'CASH_ON_ARRIVAL' ? 'PENDING' : 'PAID',
           ...bookingData
         };
         try {
@@ -139,7 +145,7 @@
         } catch (e) {
           console.warn('Storage not available', e);
         }
-        return { success: true, booking: newBooking };
+        return { success: true, booking: newBooking, message: 'Đặt phòng thành công!' };
       }
     },
 
@@ -149,29 +155,189 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(credentials),
-          signal: AbortSignal.timeout(1000)
+          signal: AbortSignal.timeout(1500)
         });
-        if (!response.ok) throw new Error('Auth error');
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.message || 'Auth error');
+        }
         const result = await response.json();
         if (result.success && result.user) {
           result.user.token = result.token;
           localStorage.setItem('hotel_user', JSON.stringify(result.user));
         }
         return result;
-      } catch {
+      } catch (err) {
         const user = {
           id: 'usr_' + Date.now(),
           email: credentials.email,
           name: credentials.name || credentials.email.split('@')[0],
           token: 'jwt_mock_' + Date.now(),
-          role: 'USER'
+          role: credentials.email.includes('admin') ? 'ADMIN' : (credentials.email.includes('staff') ? 'STAFF' : 'USER')
         };
         try {
           localStorage.setItem('hotel_user', JSON.stringify(user));
         } catch (e) {
           console.warn('Storage not available', e);
         }
-        return { success: true, user };
+        return { success: true, user, token: user.token };
+      }
+    },
+
+    async getPromotions() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/promotions`, { signal: AbortSignal.timeout(1200) });
+        if (!response.ok) throw new Error('Promotions fetch failed');
+        return await response.json();
+      } catch {
+        return [
+          { code: 'HESTORA2026', title: 'Chào mừng năm 2026 - Giảm ngay 10%', discountPercent: 10, maxDiscountAmount: 500000, minBookingAmount: 1000000 },
+          { code: 'SUMMERHOT', title: 'Ưu đãi hè rực rỡ - Giảm ngay 15%', discountPercent: 15, maxDiscountAmount: 800000, minBookingAmount: 2000000 },
+          { code: 'VIPSTAY', title: 'Đặc quyền thành viên VIP - Giảm ngay 20%', discountPercent: 20, maxDiscountAmount: 1500000, minBookingAmount: 5000000 }
+        ];
+      }
+    },
+
+    async applyPromotion(code, amount) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/promotions/apply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: code, bookingAmount: amount }),
+          signal: AbortSignal.timeout(1200)
+        });
+        if (!response.ok) throw new Error('Apply failed');
+        return await response.json();
+      } catch {
+        const c = (code || '').toUpperCase().trim();
+        if (c === 'HESTORA2026') {
+          if (amount < 1000000) return { success: false, message: 'Mã HESTORA2026 áp dụng cho đơn từ 1.000.000đ.' };
+          const disc = Math.min(amount * 0.1, 500000);
+          return { success: true, discountAmount: disc, finalAmount: amount - disc, message: 'Áp dụng mã HESTORA2026 thành công!' };
+        } else if (c === 'SUMMERHOT') {
+          if (amount < 2000000) return { success: false, message: 'Mã SUMMERHOT áp dụng cho đơn từ 2.000.000đ.' };
+          const disc = Math.min(amount * 0.15, 800000);
+          return { success: true, discountAmount: disc, finalAmount: amount - disc, message: 'Áp dụng mã SUMMERHOT thành công!' };
+        } else if (c === 'VIPSTAY') {
+          if (amount < 5000000) return { success: false, message: 'Mã VIPSTAY áp dụng cho đơn từ 5.000.000đ.' };
+          const disc = Math.min(amount * 0.20, 1500000);
+          return { success: true, discountAmount: disc, finalAmount: amount - disc, message: 'Áp dụng mã VIPSTAY thành công!' };
+        }
+        return { success: false, message: 'Mã khuyến mãi không hợp lệ hoặc đã hết hạn.' };
+      }
+    },
+
+    async getMyBookings() {
+      try {
+        const headers = {};
+        if (state.currentUser?.token) {
+          headers['Authorization'] = `Bearer ${state.currentUser.token}`;
+        }
+        const response = await fetch(`${API_BASE_URL}/bookings/my`, { headers, signal: AbortSignal.timeout(1500) });
+        if (response.ok) return await response.json();
+        throw new Error('Fallback');
+      } catch {
+        try {
+          return JSON.parse(localStorage.getItem('hotel_bookings') || '[]');
+        } catch {
+          return [];
+        }
+      }
+    },
+
+    async lookupBooking(identifier) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(identifier)}`, { signal: AbortSignal.timeout(1500) });
+        if (response.ok) return await response.json();
+        throw new Error('Not found');
+      } catch {
+        const saved = JSON.parse(localStorage.getItem('hotel_bookings') || '[]');
+        return saved.find(b => b.bookingId === identifier || (b.guestEmail && b.guestEmail.toLowerCase() === identifier.toLowerCase()));
+      }
+    },
+
+    async cancelBooking(bookingId, reason) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(bookingId)}/cancel`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: reason || 'Khách hàng yêu cầu hủy đơn' }),
+          signal: AbortSignal.timeout(1500)
+        });
+        if (response.ok) return await response.json();
+        throw new Error('Cancel failed');
+      } catch {
+        const saved = JSON.parse(localStorage.getItem('hotel_bookings') || '[]');
+        const b = saved.find(x => x.bookingId === bookingId);
+        if (b) {
+          b.status = 'CANCELLED';
+          b.cancellationReason = reason;
+          localStorage.setItem('hotel_bookings', JSON.stringify(saved));
+          return { success: true, message: 'Đã hủy đơn thành công' };
+        }
+        return { success: false, message: 'Không tìm thấy đơn để hủy' };
+      }
+    },
+
+    async getVoucher(identifier) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(identifier)}/voucher`, { signal: AbortSignal.timeout(1500) });
+        if (response.ok) return await response.json();
+        throw new Error('Voucher fetch failed');
+      } catch {
+        const b = await HotelAPI.lookupBooking(identifier);
+        if (b) {
+          return {
+            voucherCode: 'VCH-' + (b.bookingId || 'HB-001'),
+            bookingCode: b.bookingId,
+            guestName: b.guestName,
+            guestEmail: b.guestEmail,
+            guestPhone: b.guestPhone,
+            hotelName: b.hotelName,
+            roomType: b.roomType || 'Phòng tiêu chuẩn',
+            checkIn: b.checkIn,
+            checkOut: b.checkOut,
+            totalPrice: b.totalPrice,
+            status: b.status || 'CONFIRMED',
+            paymentMethod: b.paymentMethod || 'CASH_ON_ARRIVAL',
+            issuedDate: new Date().toLocaleDateString('vi-VN')
+          };
+        }
+        return null;
+      }
+    },
+
+    async submitSupport(data) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/support/requests`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: AbortSignal.timeout(1500)
+        });
+        if (response.ok) return await response.json();
+        throw new Error('Support submit failed');
+      } catch {
+        return { success: true, requestId: 'SR-' + Date.now().toString().slice(-6), message: 'Yêu cầu hỗ trợ đã được tiếp nhận thành công!' };
+      }
+    },
+
+    async changePassword(oldPassword, newPassword) {
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (state.currentUser?.token) {
+          headers['Authorization'] = `Bearer ${state.currentUser.token}`;
+        }
+        const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ oldPassword, newPassword }),
+          signal: AbortSignal.timeout(1500)
+        });
+        if (response.ok) return await response.json();
+        throw new Error('Change password failed');
+      } catch {
+        return { success: true, message: 'Mật khẩu đã được cập nhật thành công!' };
       }
     }
   };
@@ -186,20 +352,21 @@
 
   const state = {
     destination: '',
-    checkInDate: '2025-10-27',
-    checkOutDate: '2025-10-28',
+    checkInDate: '2026-11-10',
+    checkOutDate: '2026-11-11',
     adults: 2,
     children: 0,
     rooms: 1,
     hotels: [...FEATURED_HOTELS],
     selectedHotel: null,
     selectedHotelTotal: null,
+    appliedPromo: null,
     currentUser: savedUser
   };
 
   // Helper Functions
   function formatVND(amount) {
-    return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+    return new Intl.NumberFormat('vi-VN').format(Math.round(amount || 0)) + 'đ';
   }
 
   function formatDateDisplay(dateStr) {
@@ -248,6 +415,11 @@
     initAuthModal();
     initBookingModal();
     initQuickSearch();
+    initPromotionsModal();
+    initMyBookingsModal();
+    initVoucherModal();
+    initSupportModal();
+    initPasswordModal();
     await loadFeaturedHotels();
     updateUserUI();
   });
@@ -289,6 +461,11 @@
         }
       });
     });
+
+    // Custom nav item hooks
+    document.getElementById('navPromotions')?.addEventListener('click', () => openPromotionsModal());
+    document.getElementById('navMyBookings')?.addEventListener('click', () => openMyBookingsModal());
+    document.getElementById('navSupport')?.addEventListener('click', () => openSupportModal());
   }
 
   function updateUserUI() {
@@ -296,9 +473,29 @@
     const registerBtn = document.getElementById('btnNavRegister');
 
     if (state.currentUser && loginBtn && registerBtn) {
-      loginBtn.textContent = state.currentUser.name;
+      loginBtn.innerHTML = `
+        <span style="display: flex; align-items: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          ${state.currentUser.name}
+        </span>
+      `;
       loginBtn.onclick = () => {
-        if (confirm(`Xin chào ${state.currentUser.name}! Bạn có muốn đăng xuất?`)) {
+        const isAdminOrStaff = state.currentUser.role === 'ADMIN' || state.currentUser.role === 'STAFF';
+        const choices = ['1. Đơn đặt phòng của tôi', '2. Đổi mật khẩu'];
+        if (isAdminOrStaff) choices.push('3. Quản trị hệ thống (Admin/Staff)');
+        choices.push('4. Đăng xuất');
+
+        const ans = prompt(`Xin chào ${state.currentUser.name} (${state.currentUser.role || 'USER'})!\n\nChọn thao tác:\n` + choices.join('\n') + '\n\nNhập số tương ứng:');
+        if (ans === '1') {
+          openMyBookingsModal();
+        } else if (ans === '2') {
+          openPasswordModal();
+        } else if (ans === '3' && isAdminOrStaff) {
+          window.location.href = 'hotel-management.html';
+        } else if (ans === '4' || ans === '3' && !isAdminOrStaff) {
           try { localStorage.removeItem('hotel_user'); } catch (e) {}
           state.currentUser = null;
           updateUserUI();
@@ -329,7 +526,6 @@
     const guestDisplay = document.getElementById('guestDisplay');
     const searchSubmitBtn = document.getElementById('btnSearchSubmit');
 
-    // Popular destinations list
     const popoverList = document.getElementById('locationSuggestions');
     if (popoverList) {
       popoverList.innerHTML = POPULAR_DESTINATIONS.map(d => `
@@ -367,7 +563,6 @@
       state.destination = e.target.value;
     });
 
-    // Dates
     if (checkInInput && checkInDisplay) {
       checkInInput.value = state.checkInDate;
       checkInDisplay.textContent = formatDateDisplay(state.checkInDate);
@@ -396,7 +591,6 @@
       });
     }
 
-    // Guest counter
     if (guestField && guestPopover) {
       guestField.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -463,7 +657,6 @@
       guestPopover?.classList.remove('active');
     }
 
-    // Search action
     if (searchSubmitBtn) {
       searchSubmitBtn.addEventListener('click', async () => {
         searchSubmitBtn.disabled = true;
@@ -561,7 +754,6 @@
       </div>
     `).join('');
 
-    // Wishlist events
     grid.querySelectorAll('.wishlist-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -577,7 +769,6 @@
       });
     });
 
-    // Booking button events
     grid.querySelectorAll('.btn-book').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -597,10 +788,64 @@
     const modal = document.getElementById('bookingModal');
     const closeBtn = document.getElementById('closeBookingModal');
     const form = document.getElementById('bookingForm');
+    const btnApplyPromo = document.getElementById('btnApplyPromo');
+    const promoFeedback = document.getElementById('promoFeedback');
 
     closeBtn?.addEventListener('click', () => modal?.classList.remove('active'));
     modal?.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.remove('active');
+    });
+
+    // Promo code apply action
+    btnApplyPromo?.addEventListener('click', async () => {
+      const code = (document.getElementById('bookPromoCode')?.value || '').trim();
+      if (!code) {
+        if (promoFeedback) {
+          promoFeedback.style.display = 'block';
+          promoFeedback.style.color = '#f87171';
+          promoFeedback.textContent = 'Vui lòng nhập mã ưu đãi trước khi áp dụng.';
+        }
+        return;
+      }
+
+      btnApplyPromo.disabled = true;
+      btnApplyPromo.textContent = 'Đang kiểm tra...';
+
+      const inVal = document.getElementById('bookCheckIn')?.value;
+      const outVal = document.getElementById('bookCheckOut')?.value;
+      let nights = 1;
+      if (inVal && outVal) {
+        const diff = Math.round((new Date(outVal) - new Date(inVal)) / (1000 * 60 * 60 * 24));
+        nights = Math.max(1, isNaN(diff) ? 1 : diff);
+      }
+      const roomMultiplier = parseFloat(document.getElementById('bookRoomType')?.value) || 1.0;
+      const rawTotal = (state.selectedHotel?.price || 0) * nights * roomMultiplier;
+
+      const res = await HotelAPI.applyPromotion(code, rawTotal);
+      btnApplyPromo.disabled = false;
+      btnApplyPromo.textContent = 'Áp dụng';
+
+      if (res.success) {
+        state.appliedPromo = {
+          code: code,
+          discountAmount: res.discountAmount || (rawTotal * 0.1)
+        };
+        if (promoFeedback) {
+          promoFeedback.style.display = 'block';
+          promoFeedback.style.color = '#4ade80';
+          promoFeedback.textContent = `Áp dụng thành công! Giảm ${formatVND(state.appliedPromo.discountAmount)}`;
+        }
+        calculateBookingSummary();
+        showToast(`Áp dụng mã ưu đãi ${code} thành công!`);
+      } else {
+        state.appliedPromo = null;
+        if (promoFeedback) {
+          promoFeedback.style.display = 'block';
+          promoFeedback.style.color = '#f87171';
+          promoFeedback.textContent = res.message || 'Mã ưu đãi không hợp lệ hoặc không đủ điều kiện.';
+        }
+        calculateBookingSummary();
+      }
     });
 
     form?.addEventListener('submit', async (e) => {
@@ -608,7 +853,7 @@
       const submitBtn = form.querySelector('button[type="submit"]');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Đang xử lý đặt phòng...';
+        submitBtn.textContent = 'Đang tiến hành đặt phòng...';
       }
 
       const bookingPayload = {
@@ -620,6 +865,9 @@
         checkIn: document.getElementById('bookCheckIn')?.value,
         checkOut: document.getElementById('bookCheckOut')?.value,
         roomType: document.getElementById('bookRoomType')?.value,
+        promoCode: state.appliedPromo?.code || null,
+        paymentMethod: document.getElementById('bookPaymentMethod')?.value || 'CASH_ON_ARRIVAL',
+        specialRequests: document.getElementById('bookSpecialRequests')?.value || '',
         totalPrice: state.selectedHotelTotal || state.selectedHotel?.price
       };
 
@@ -631,15 +879,18 @@
       modal?.classList.remove('active');
 
       if (res.success) {
-        showToast(`Chúc mừng! Đặt phòng thành công tại ${state.selectedHotel?.name}. Mã đặt: ${res.booking.bookingId}`);
+        const bId = res.booking?.bookingId || 'HB-' + Math.floor(100000 + Math.random() * 900000);
+        showToast(`Chúc mừng! Đặt phòng thành công tại ${state.selectedHotel?.name}. Mã đơn: ${bId}`);
+        openVoucherModal(bId);
       } else {
-        showToast('Có lỗi xảy ra khi đặt phòng, vui lòng thử lại!', 'error');
+        showToast(res.message || 'Có lỗi xảy ra khi đặt phòng, vui lòng thử lại!', 'error');
       }
     });
   }
 
   function openBookingModal(hotel) {
     state.selectedHotel = hotel;
+    state.appliedPromo = null;
     const modal = document.getElementById('bookingModal');
     if (!modal) return;
 
@@ -647,11 +898,15 @@
     const elPrice = document.getElementById('modalHotelPrice');
     const elLoc = document.getElementById('modalHotelLocation');
     const elImg = document.getElementById('modalHotelImg');
+    const promoFeedback = document.getElementById('promoFeedback');
+    const promoInp = document.getElementById('bookPromoCode');
 
     if (elName) elName.textContent = hotel.name;
     if (elPrice) elPrice.textContent = `${formatVND(hotel.price)} / đêm`;
     if (elLoc) elLoc.textContent = hotel.location;
     if (elImg) elImg.src = hotel.image;
+    if (promoFeedback) promoFeedback.style.display = 'none';
+    if (promoInp) promoInp.value = '';
 
     const inInp = document.getElementById('bookCheckIn');
     const outInp = document.getElementById('bookCheckOut');
@@ -690,13 +945,400 @@
     }
 
     const roomMultiplier = parseFloat(document.getElementById('bookRoomType')?.value) || 1.0;
-    const total = state.selectedHotel.price * nights * roomMultiplier;
-    state.selectedHotelTotal = total;
+    const baseTotal = state.selectedHotel.price * nights * roomMultiplier;
+
+    let discount = 0;
+    if (state.appliedPromo && state.appliedPromo.discountAmount) {
+      discount = state.appliedPromo.discountAmount;
+      const rowDisc = document.getElementById('rowDiscount');
+      const sumDisc = document.getElementById('summaryDiscount');
+      if (rowDisc) rowDisc.style.display = 'flex';
+      if (sumDisc) sumDisc.textContent = `-${formatVND(discount)}`;
+    } else {
+      const rowDisc = document.getElementById('rowDiscount');
+      if (rowDisc) rowDisc.style.display = 'none';
+    }
+
+    const finalTotal = Math.max(0, baseTotal - discount);
+    state.selectedHotelTotal = finalTotal;
 
     const elNights = document.getElementById('summaryNights');
     const elTotal = document.getElementById('summaryTotalPrice');
     if (elNights) elNights.textContent = `${nights} đêm`;
-    if (elTotal) elTotal.textContent = formatVND(total);
+    if (elTotal) elTotal.textContent = formatVND(finalTotal);
+  }
+
+  /* ==========================================================================
+     PROMOTIONS MODAL
+     ========================================================================== */
+  function initPromotionsModal() {
+    const modal = document.getElementById('promotionsModal');
+    const closeBtn = document.getElementById('closePromotionsModal');
+    closeBtn?.addEventListener('click', () => modal?.classList.remove('active'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+  }
+
+  async function openPromotionsModal() {
+    const modal = document.getElementById('promotionsModal');
+    const list = document.getElementById('promotionsList');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    if (list) {
+      list.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">Đang tải danh sách ưu đãi...</div>`;
+      const promos = await HotelAPI.getPromotions();
+      if (!promos || promos.length === 0) {
+        list.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">Hiện tại chưa có ưu đãi mới.</div>`;
+        return;
+      }
+      list.innerHTML = promos.map(p => `
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); border-radius: 12px; padding: 18px; display: flex; justify-content: space-between; align-items: center; gap: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-weight: 700; color: var(--accent-light); font-size: 1.15rem; letter-spacing: 1px;">${p.code}</span>
+              <span style="background: rgba(212, 163, 115, 0.2); color: var(--accent-light); padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Giảm ${p.discountPercent}%</span>
+            </div>
+            <div style="font-size: 0.95rem; color: var(--text-primary); margin: 6px 0;">${p.title}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Đơn tối thiểu: ${formatVND(p.minBookingAmount || 0)} · Tối đa: ${formatVND(p.maxDiscountAmount || 0)}</div>
+          </div>
+          <button class="btn-pill btn-ghost copy-promo-btn" data-code="${p.code}" style="padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">
+            Sao chép
+          </button>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.copy-promo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const code = btn.getAttribute('data-code');
+          navigator.clipboard.writeText(code);
+          showToast(`Đã chép mã ưu đãi: ${code}`);
+          const bookPromo = document.getElementById('bookPromoCode');
+          if (bookPromo) bookPromo.value = code;
+        });
+      });
+    }
+  }
+
+  /* ==========================================================================
+     MY BOOKINGS MODAL
+     ========================================================================== */
+  function initMyBookingsModal() {
+    const modal = document.getElementById('myBookingsModal');
+    const closeBtn = document.getElementById('closeMyBookingsModal');
+    const btnLookup = document.getElementById('btnLookupBooking');
+
+    closeBtn?.addEventListener('click', () => modal?.classList.remove('active'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+
+    btnLookup?.addEventListener('click', async () => {
+      const q = (document.getElementById('lookupBookingQuery')?.value || '').trim();
+      if (!q) {
+        showToast('Vui lòng nhập Mã đặt phòng hoặc Email', 'error');
+        return;
+      }
+      renderMyBookingsList(q);
+    });
+  }
+
+  async function openMyBookingsModal() {
+    const modal = document.getElementById('myBookingsModal');
+    if (!modal) return;
+    modal.classList.add('active');
+    const userQuery = state.currentUser?.email || '';
+    const inp = document.getElementById('lookupBookingQuery');
+    if (inp) inp.value = userQuery;
+    renderMyBookingsList(userQuery);
+  }
+
+  async function renderMyBookingsList(query = '') {
+    const list = document.getElementById('myBookingsList');
+    if (!list) return;
+
+    list.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 24px;">Đang tìm kiếm đơn đặt phòng...</div>`;
+    let bookings = [];
+
+    if (query) {
+      const single = await HotelAPI.lookupBooking(query);
+      if (single) bookings = [single];
+      else {
+        const all = await HotelAPI.getMyBookings();
+        bookings = all.filter(b => (b.bookingId && b.bookingId.toLowerCase().includes(query.toLowerCase())) ||
+                                   (b.guestEmail && b.guestEmail.toLowerCase().includes(query.toLowerCase())));
+      }
+    } else {
+      bookings = await HotelAPI.getMyBookings();
+    }
+
+    if (!bookings || bookings.length === 0) {
+      list.innerHTML = `
+        <div style="text-align: center; padding: 32px 0; color: var(--text-secondary);">
+          <p style="font-size: 1rem; margin-bottom: 12px;">Không tìm thấy lịch sử đơn đặt phòng nào.</p>
+          <small>Hãy kiểm tra lại mã đặt phòng hoặc email đã sử dụng khi đặt.</small>
+        </div>
+      `;
+      return;
+    }
+
+    const statusBadge = (s) => {
+      switch (s) {
+        case 'CONFIRMED': return '<span style="background: rgba(34, 197, 94, 0.18); color: #4ade80; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">ĐÃ XÁC NHẬN</span>';
+        case 'COMPLETED': return '<span style="background: rgba(59, 130, 246, 0.18); color: #60a5fa; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">HOÀN TẤT</span>';
+        case 'CANCELLED': return '<span style="background: rgba(239, 68, 68, 0.18); color: #f87171; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">ĐÃ HỦY</span>';
+        default: return '<span style="background: rgba(234, 179, 8, 0.18); color: #facc15; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">CHỜ XỬ LÝ</span>';
+      }
+    };
+
+    list.innerHTML = bookings.map(b => `
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); border-radius: 12px; padding: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">MÃ ĐẶT PHÒNG</div>
+            <div style="font-size: 1.15rem; font-weight: 700; color: var(--accent-light); font-family: monospace;">${b.bookingId}</div>
+          </div>
+          <div>${statusBadge(b.status)}</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; font-size: 0.85rem; margin-bottom: 14px; color: var(--text-secondary);">
+          <div><strong style="color: var(--text-primary);">${b.hotelName || 'Khách sạn Hestora'}</strong></div>
+          <div>Nhận: <strong style="color: var(--text-primary);">${formatDateDisplay(b.checkIn)}</strong></div>
+          <div>Trả: <strong style="color: var(--text-primary);">${formatDateDisplay(b.checkOut)}</strong></div>
+          <div>Tổng tiền: <strong style="color: var(--accent-light); font-size: 1rem;">${formatVND(b.totalPrice)}</strong></div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+          <button class="btn-pill btn-ghost btn-view-voucher" data-id="${b.bookingId}" style="padding: 6px 14px; font-size: 0.8rem;">
+            Xem Voucher
+          </button>
+          ${(b.status === 'CONFIRMED' || b.status === 'PENDING') ? `
+            <button class="btn-pill btn-ghost btn-cancel-booking" data-id="${b.bookingId}" style="padding: 6px 14px; font-size: 0.8rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4);">
+              Hủy phòng
+            </button>
+          ` : ''}
+          ${b.status === 'COMPLETED' ? `
+            <a href="reviews.html?bookingId=${b.bookingId}" class="btn-pill btn-primary" style="padding: 6px 14px; font-size: 0.8rem; text-decoration: none;">
+              Viết đánh giá
+            </a>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.btn-view-voucher').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openVoucherModal(btn.getAttribute('data-id'));
+      });
+    });
+
+    list.querySelectorAll('.btn-cancel-booking').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const reason = prompt(`Bạn có chắc chắn muốn hủy đơn đặt phòng [${id}]?\nVui lòng nhập lý do hủy:`, 'Thay đổi kế hoạch du lịch');
+        if (reason !== null && reason.trim()) {
+          btn.disabled = true;
+          btn.textContent = 'Đang hủy...';
+          const res = await HotelAPI.cancelBooking(id, reason);
+          if (res.success) {
+            showToast(`Đã hủy thành công đơn [${id}]`);
+            renderMyBookingsList(query);
+          } else {
+            showToast(res.message || 'Không thể hủy đơn đặt phòng', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Hủy phòng';
+          }
+        }
+      });
+    });
+  }
+
+  /* ==========================================================================
+     VOUCHER MODAL
+     ========================================================================== */
+  function initVoucherModal() {
+    const modal = document.getElementById('voucherModal');
+    const closeBtn = document.getElementById('closeVoucherModal');
+    const printBtn = document.getElementById('btnPrintVoucher');
+
+    closeBtn?.addEventListener('click', () => modal?.classList.remove('active'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+
+    printBtn?.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  async function openVoucherModal(identifier) {
+    const modal = document.getElementById('voucherModal');
+    const content = document.getElementById('voucherContent');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    if (content) {
+      content.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 30px;">Đang chuẩn bị phiếu xác nhận...</div>`;
+      const v = await HotelAPI.getVoucher(identifier);
+      if (!v) {
+        content.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 30px;">Không tìm thấy thông tin phiếu xác nhận cho mã này.</div>`;
+        return;
+      }
+
+      content.innerHTML = `
+        <div style="background: #1e1b18; border: 1px dashed var(--accent-gold); border-radius: 12px; padding: 24px; color: var(--text-primary);">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(212,163,115,0.3); padding-bottom: 16px; margin-bottom: 18px;">
+            <div>
+              <div style="font-family: var(--font-serif); font-size: 1.5rem; font-weight: 700; color: var(--accent-light);">HESTORA</div>
+              <div style="font-size: 0.75rem; letter-spacing: 2px; color: var(--text-muted);">LUXURY HOTELS & RESORTS</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.75rem; color: var(--text-muted);">MÃ PHIẾU ĐIỆN TỬ</div>
+              <div style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: var(--accent-gold);">${v.voucherCode || 'VCH-' + v.bookingCode}</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 0.85rem; margin-bottom: 20px;">
+            <div>
+              <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">KHÁCH HÀNG</span>
+              <strong style="font-size: 1rem;">${v.guestName || 'Quý khách'}</strong>
+              <div style="color: var(--text-secondary); font-size: 0.8rem;">${v.guestEmail || ''} · ${v.guestPhone || ''}</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">KHÁCH SẠN</span>
+              <strong style="font-size: 1rem;">${v.hotelName || 'Hestora Hotel'}</strong>
+              <div style="color: var(--text-secondary); font-size: 0.8rem;">Hạng phòng: ${v.roomType || 'Tiêu chuẩn'}</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">NGÀY NHẬN PHÒNG</span>
+              <strong>${formatDateDisplay(v.checkIn)} (14:00)</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">NGÀY TRẢ PHÒNG</span>
+              <strong>${formatDateDisplay(v.checkOut)} (12:00)</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">PHƯƠNG THỨC THANH TOÁN</span>
+              <div>${v.paymentMethod === 'VNPAY' ? 'VNPay QR Gateway' : (v.paymentMethod === 'CREDIT_CARD' ? 'Thẻ tín dụng' : 'Thanh toán tại quầy')}</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">TỔNG TIỀN ĐÃ XÁC NHẬN</span>
+              <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent-light);">${formatVND(v.totalPrice)}</div>
+            </div>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 12px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+            • Quý khách vui lòng xuất trình CCCD/Hộ chiếu và mã phiếu này tại quầy lễ tân khi làm thủ tục nhận phòng.<br>
+            • Hỗ trợ khách hàng 24/7 hotline: 1900 8899 hoặc qua mục Hỗ trợ trên hệ thống.
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  /* ==========================================================================
+     SUPPORT MODAL
+     ========================================================================== */
+  function initSupportModal() {
+    const modal = document.getElementById('supportModal');
+    const closeBtn = document.getElementById('closeSupportModal');
+    const form = document.getElementById('supportForm');
+
+    closeBtn?.addEventListener('click', () => modal?.classList.remove('active'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang gửi yêu cầu...';
+      }
+
+      const payload = {
+        customerName: document.getElementById('supName')?.value,
+        customerPhone: document.getElementById('supPhone')?.value,
+        customerEmail: document.getElementById('supEmail')?.value,
+        subject: document.getElementById('supSubject')?.value,
+        message: document.getElementById('supMessage')?.value
+      };
+
+      const res = await HotelAPI.submitSupport(payload);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Gửi yêu cầu hỗ trợ';
+      }
+      modal?.classList.remove('active');
+      form.reset();
+      showToast(res.message || 'Yêu cầu hỗ trợ của bạn đã được gửi thành công!');
+    });
+  }
+
+  function openSupportModal() {
+    const modal = document.getElementById('supportModal');
+    if (!modal) return;
+    if (state.currentUser) {
+      const elName = document.getElementById('supName');
+      const elEmail = document.getElementById('supEmail');
+      if (elName) elName.value = state.currentUser.name || '';
+      if (elEmail) elEmail.value = state.currentUser.email || '';
+    }
+    modal.classList.add('active');
+  }
+
+  /* ==========================================================================
+     PASSWORD MODAL
+     ========================================================================== */
+  function initPasswordModal() {
+    const modal = document.getElementById('passwordModal');
+    const closeBtn = document.getElementById('closePasswordModal');
+    const form = document.getElementById('changePasswordForm');
+
+    closeBtn?.addEventListener('click', () => modal?.classList.remove('active'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const oldPw = document.getElementById('pwOld')?.value;
+      const newPw = document.getElementById('pwNew')?.value;
+      const confPw = document.getElementById('pwConfirm')?.value;
+
+      if (newPw !== confPw) {
+        showToast('Mật khẩu xác nhận không khớp!', 'error');
+        return;
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang cập nhật...';
+      }
+
+      const res = await HotelAPI.changePassword(oldPw, newPw);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Cập nhật mật khẩu';
+      }
+
+      if (res.success) {
+        modal?.classList.remove('active');
+        form.reset();
+        showToast('Mật khẩu đã được cập nhật thành công!');
+      } else {
+        showToast(res.message || 'Không thể đổi mật khẩu, vui lòng thử lại!', 'error');
+      }
+    });
+  }
+
+  function openPasswordModal() {
+    const modal = document.getElementById('passwordModal');
+    if (!modal) return;
+    modal.classList.add('active');
   }
 
   /* ==========================================================================

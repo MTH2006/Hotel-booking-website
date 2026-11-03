@@ -1,80 +1,596 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đặt Phòng Khách Sạn Trực Tuyến</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HESTORA - Đặt phòng khách sạn sang trọng | Your Stay, Your Story</title>
+  <meta name="description" content="Khám phá hàng nghìn khách sạn trên toàn quốc với giá tốt nhất cùng HESTORA - Your Stay, Your Story.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/jpeg" href="assets/images/hestora_logo.jpg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <header>
-        <nav>
-            <h2>Hotel Booking System</h2>
-            <div>
-                <a href="index.html">Trang chủ</a>
-                <a href="hotel-management.html">Quản lý</a>
+
+  <!-- ==========================================================================
+       TOP NAVIGATION BAR
+       ========================================================================== -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-container">
+      <!-- Brand Logo -->
+      <a href="index.html" class="brand-logo" id="brandLogo">
+        <img src="assets/images/hestora_logo.jpg" alt="HESTORA Logo" class="brand-logo-img">
+        <div class="brand-text-block">
+          <span class="brand-name">HESTORA</span>
+          <span class="brand-tagline">YOUR STAY, YOUR STORY</span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation Menu -->
+      <nav class="nav-menu" id="navMenu">
+        <a href="#heroSection" class="nav-link active">Trang chủ</a>
+        <a href="#hotelsSection" class="nav-link">Khách sạn</a>
+        <a href="javascript:void(0)" class="nav-link" id="navPromotions">Ưu đãi</a>
+        <a href="reviews.html" class="nav-link">Đánh giá</a>
+        <a href="javascript:void(0)" class="nav-link" id="navMyBookings">Đơn của tôi</a>
+        <a href="javascript:void(0)" class="nav-link" id="navSupport">Hỗ trợ 24/7</a>
+        <a href="hotel-management.html" class="nav-link" id="navAdmin">Quản trị</a>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        <!-- Quick Search Icon Button -->
+        <button class="icon-btn" id="btnNavSearch" aria-label="Tìm kiếm nhanh" title="Tìm kiếm">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+
+        <!-- Auth Buttons -->
+        <button class="btn-pill btn-ghost" id="btnNavLogin">Đăng nhập</button>
+        <button class="btn-pill btn-primary" id="btnNavRegister">Đăng ký</button>
+
+        <!-- Mobile Hamburger Toggle -->
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Menu" title="Menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       HERO SECTION WITH LUXURY INTERIOR & FLOATING SEARCH BAR
+       ========================================================================== -->
+  <section class="hero-section" id="heroSection" style="background-image: url('assets/images/hero_hotel_room.jpg');">
+    <div class="hero-backdrop"></div>
+    <div class="container hero-container">
+
+      <!-- Left Hero Typography -->
+      <div class="hero-content">
+        <span class="hero-tag">KHÁM PHÁ NHỮNG TRẢI NGHIỆM TUYỆT VỜI</span>
+        <h1 class="hero-title">
+          Đặt phòng khách sạn<br>
+          dễ dàng, nhanh chóng
+        </h1>
+        <p class="hero-desc">
+          Khám phá hàng nghìn khách sạn trên toàn quốc với giá tốt nhất. Trải nghiệm kỳ nghỉ tuyệt vời cùng chúng tôi!
+        </p>
+      </div>
+
+      <!-- Floating Search Bar Card -->
+      <div class="search-widget-wrapper">
+        <div class="search-widget">
+
+          <!-- Field 1: Địa điểm -->
+          <div class="search-field" id="locationField">
+            <span class="field-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </span>
+            <div class="field-content">
+              <span class="field-label">Địa điểm</span>
+              <input type="text" id="locationInput" class="field-input" placeholder="Nhập tên thành phố, khách sạn..." autocomplete="off">
             </div>
-        </nav>
-    </header>
 
-    <main class="container">
-        <!-- Khối tìm kiếm & Đặt phòng -->
-        <section class="booking-search-box">
-            <h3>Đặt phòng khách sạn</h3>
-            <form id="booking-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Chọn Khách Sạn:</label>
-                        <select id="booking-hotel-select" onchange="loadAvailableRooms()" required>
-                            <option value="">-- Chọn khách sạn --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Chọn Phòng:</label>
-                        <select id="booking-room-select" required>
-                            <option value="">-- Chọn phòng --</option>
-                        </select>
-                    </div>
+            <!-- Location Autocomplete Popover -->
+            <div class="dropdown-popover location-popover" id="locationPopover">
+              <div class="popover-heading">Điểm đến phổ biến</div>
+              <div id="locationSuggestions"></div>
+            </div>
+          </div>
+
+          <!-- Field 2: Ngày nhận phòng -->
+          <div class="search-field" id="checkInField">
+            <span class="field-icon">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <div class="field-content" onclick="document.getElementById('checkInInput').showPicker ? document.getElementById('checkInInput').showPicker() : document.getElementById('checkInInput').focus()">
+              <span class="field-label">Ngày nhận phòng</span>
+              <span class="field-value" id="checkInDisplay">27/10/2025</span>
+              <input type="date" id="checkInInput" style="position: absolute; opacity: 0; pointer-events: none;">
+            </div>
+            <span class="field-dropdown-icon" onclick="document.getElementById('checkInInput').showPicker ? document.getElementById('checkInInput').showPicker() : document.getElementById('checkInInput').focus()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+          </div>
+
+          <!-- Field 3: Ngày trả phòng -->
+          <div class="search-field" id="checkOutField">
+            <span class="field-icon">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <div class="field-content" onclick="document.getElementById('checkOutInput').showPicker ? document.getElementById('checkOutInput').showPicker() : document.getElementById('checkOutInput').focus()">
+              <span class="field-label">Ngày trả phòng</span>
+              <span class="field-value" id="checkOutDisplay">28/10/2025</span>
+              <input type="date" id="checkOutInput" style="position: absolute; opacity: 0; pointer-events: none;">
+            </div>
+            <span class="field-dropdown-icon" onclick="document.getElementById('checkOutInput').showPicker ? document.getElementById('checkOutInput').showPicker() : document.getElementById('checkOutInput').focus()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+          </div>
+
+          <!-- Field 4: Số khách -->
+          <div class="search-field" id="guestField">
+            <span class="field-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <div class="field-content">
+              <span class="field-label">Số khách</span>
+              <span class="field-value" id="guestDisplay">2 người lớn, 0 trẻ em</span>
+            </div>
+            <span class="field-dropdown-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+
+            <!-- Guest Stepper Popover -->
+            <div class="dropdown-popover guest-popover" id="guestPopover">
+              <div class="popover-heading">Lựa chọn số lượng</div>
+
+              <div class="stepper-row">
+                <div class="stepper-info">
+                  <h4>Người lớn</h4>
+                  <span>Từ 12 tuổi trở lên</span>
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Ngày nhận phòng (Check-in):</label>
-                        <input type="date" id="check-in-date" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Ngày trả phòng (Check-out):</label>
-                        <input type="date" id="check-out-date" required>
-                    </div>
+                <div class="stepper-ctrls">
+                  <button type="button" class="stepper-btn" id="adultsMinus">−</button>
+                  <span class="stepper-count" id="adultsCount">2</span>
+                  <button type="button" class="stepper-btn" id="adultsPlus">+</button>
                 </div>
+              </div>
 
-                <button type="submit" class="btn-submit">Xác nhận đặt phòng</button>
-            </form>
-        </section>
+              <div class="stepper-row">
+                <div class="stepper-info">
+                  <h4>Trẻ em</h4>
+                  <span>Dưới 12 tuổi</span>
+                </div>
+                <div class="stepper-ctrls">
+                  <button type="button" class="stepper-btn" id="childrenMinus">−</button>
+                  <span class="stepper-count" id="childrenCount">0</span>
+                  <button type="button" class="stepper-btn" id="childrenPlus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <!-- Khối danh sách đơn đã đặt của người dùng -->
-        <section class="my-bookings">
-            <h3>Lịch sử đặt phòng của bạn</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Mã đơn</th>
-                        <th>Khách sạn / Phòng</th>
-                        <th>Ngày nhận</th>
-                        <th>Ngày trả</th>
-                        <th>Tổng tiền</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="user-booking-list">
-                    <tr><td colspan="7">Đang tải lịch sử...</td></tr>
-                </tbody>
-            </table>
-        </section>
-    </main>
+          <!-- Submit Action Button -->
+          <button class="search-btn" id="btnSearchSubmit">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Tìm kiếm
+          </button>
 
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       VALUE PROPOSITIONS (4 CIRCULAR BADGES)
+       ========================================================================== -->
+  <section class="features-section" id="featuresSection">
+    <div class="container">
+      <div class="features-grid">
+
+        <!-- Feature 1: Thanh toán an toàn -->
+        <div class="feature-item">
+          <div class="feature-icon-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <h3 class="feature-title">Thanh toán an toàn</h3>
+          <p class="feature-desc">Bảo mật thông tin, đa dạng phương thức thanh toán</p>
+        </div>
+
+        <!-- Feature 2: Hỗ trợ 24/7 -->
+        <div class="feature-item">
+          <div class="feature-icon-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            </svg>
+          </div>
+          <h3 class="feature-title">Hỗ trợ 24/7</h3>
+          <p class="feature-desc">Luôn sẵn sàng hỗ trợ bạn mọi lúc, mọi nơi</p>
+        </div>
+
+        <!-- Feature 3: Giá tốt nhất -->
+        <div class="feature-item">
+          <div class="feature-icon-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </div>
+          <h3 class="feature-title">Giá tốt nhất</h3>
+          <p class="feature-desc">Cam kết giá tốt, nhiều ưu đãi hấp dẫn</p>
+        </div>
+
+        <!-- Feature 4: Đa dạng lựa chọn -->
+        <div class="feature-item">
+          <div class="feature-icon-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 3h12l4 6-10 13L2 9z"></path>
+              <path d="M11 3 8 9l4 13 4-13-3-6"></path>
+              <path d="M2 9h20"></path>
+            </svg>
+          </div>
+          <h3 class="feature-title">Đa dạng lựa chọn</h3>
+          <p class="feature-desc">Hàng nghìn khách sạn, resort trên toàn quốc</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       FEATURED HOTELS SECTION (KHÁCH SẠN NỔI BẬT)
+       ========================================================================== -->
+  <section class="featured-section" id="hotelsSection">
+    <div class="container">
+
+      <!-- Section Header -->
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Khách sạn nổi bật</h2>
+          <p class="section-subtitle">Những khách sạn được yêu thích nhất hiện nay</p>
+        </div>
+        <a href="#hotelsSection" class="view-all-link" id="linkViewAll">
+          Xem tất cả
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Hotels Grid (Populated dynamically & statically for instant rendering) -->
+      <div class="hotels-grid" id="hotelsGrid">
+        <!-- Rendered by app.js with images matching user design -->
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       CALL TO ACTION BANNER (CTA)
+       ========================================================================== -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-banner" style="background-image: url('assets/images/cta_hotel_lounge.jpg');">
+        <div class="cta-backdrop"></div>
+        <div class="cta-content-wrapper">
+
+          <!-- Left Content -->
+          <div class="cta-left">
+            <span class="cta-tag">BẮT ĐẦU HÀNH TRÌNH CỦA BẠN</span>
+            <h2 class="cta-title">Đặt phòng ngay hôm nay</h2>
+            <p class="cta-desc">Trải nghiệm kỳ nghỉ đáng nhớ với những khách sạn tuyệt vời nhất!</p>
+            <button class="btn-cta" id="btnCtaExplore">
+              Khám phá ngay
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Right Cursive Signature -->
+          <div class="cta-right">
+            <div class="cursive-quote">
+              Better Stay
+              <span>Bigger Memories</span>
+              <!-- Stylized underline curve -->
+              <svg class="cursive-underline" viewBox="0 0 220 24" fill="none">
+                <path d="M5 14C55 22 170 20 215 6" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" stroke-linecap="round"></path>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       FOOTER
+       ========================================================================== -->
+  <footer class="site-footer" id="siteFooter">
+    <div class="container">
+      <div class="footer-top">
+
+        <!-- Brand Logo -->
+        <a href="index.html" class="brand-logo">
+          <img src="assets/images/hestora_logo.jpg" alt="HESTORA Logo" class="brand-logo-img">
+          <div class="brand-text-block">
+            <span class="brand-name">HESTORA</span>
+            <span class="brand-tagline">YOUR STAY, YOUR STORY</span>
+          </div>
+        </a>
+
+        <!-- Footer Nav Links -->
+        <ul class="footer-nav">
+          <li><a href="#heroSection" class="footer-link">Trang chủ</a></li>
+          <li class="footer-divider">|</li>
+          <li><a href="#hotelsSection" class="footer-link">Khách sạn</a></li>
+          <li class="footer-divider">|</li>
+          <li><a href="#hotelsSection" class="footer-link">Ưu đãi</a></li>
+          <li class="footer-divider">|</li>
+          <li><a href="reviews.html" class="footer-link">Đánh giá</a></li>
+          <li class="footer-divider">|</li>
+          <li><a href="#featuresSection" class="footer-link">Về chúng tôi</a></li>
+          <li class="footer-divider">|</li>
+          <li><a href="#siteFooter" class="footer-link">Liên hệ</a></li>
+        </ul>
+
+        <!-- Social Icons -->
+        <div class="social-links">
+          <!-- Facebook -->
+          <a href="#" class="social-btn" aria-label="Facebook">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+            </svg>
+          </a>
+          <!-- Instagram -->
+          <a href="#" class="social-btn" aria-label="Instagram">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+          </a>
+          <!-- YouTube -->
+          <a href="#" class="social-btn" aria-label="YouTube">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+              <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#141210"></polygon>
+            </svg>
+          </a>
+          <!-- Email -->
+          <a href="#" class="social-btn" aria-label="Email">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Footer Bottom Copyright -->
+      <div class="footer-bottom">
+        <p class="copyright-text">© 2025 HESTORA. Tất cả quyền được bảo lưu.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       BOOKING MODAL
+       ========================================================================== -->
+  <div class="modal-backdrop" id="bookingModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title">Đặt phòng khách sạn</h3>
+        <button class="modal-close-btn" id="closeBookingModal" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Hotel Selected Preview -->
+        <div style="display: flex; gap: 16px; margin-bottom: 20px; align-items: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <img id="modalHotelImg" src="" alt="Hotel preview" style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px;">
+          <div>
+            <h4 id="modalHotelName" style="font-size: 1.05rem; font-weight: 600;"></h4>
+            <div id="modalHotelLocation" style="font-size: 0.8rem; color: var(--text-secondary); margin: 2px 0;"></div>
+            <div id="modalHotelPrice" style="font-weight: 700; color: var(--accent-light); font-size: 0.95rem;"></div>
+          </div>
+        </div>
+
+        <form id="bookingForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Ngày nhận phòng</label>
+              <input type="date" id="bookCheckIn" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ngày trả phòng</label>
+              <input type="date" id="bookCheckOut" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Loại phòng</label>
+            <select id="bookRoomType" class="form-control" style="background: var(--bg-input);">
+              <option value="1.0">Phòng Tiêu Chuẩn (Deluxe Double Room)</option>
+              <option value="1.35">Phòng Hạng Sang Hướng Biển / Phố (Premium Ocean View)</option>
+              <option value="1.85">Phòng Tổng Thống Cao Cấp (Executive Suite)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Họ và tên khách hàng</label>
+            <input type="text" id="bookGuestName" class="form-control" placeholder="Nguyễn Văn A" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Số điện thoại</label>
+              <input type="tel" id="bookGuestPhone" class="form-control" placeholder="0901 234 567" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email xác nhận</label>
+              <input type="email" id="bookGuestEmail" class="form-control" placeholder="example@email.com" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phương thức thanh toán</label>
+              <select id="bookPaymentMethod" class="form-control" style="background: var(--bg-input);">
+                <option value="CASH_ON_ARRIVAL">Thanh toán khi nhận phòng (Tiền mặt / Thẻ)</option>
+                <option value="VNPAY">Cổng thanh toán VNPay QR</option>
+                <option value="CREDIT_CARD">Thẻ tín dụng / Ghi nợ quốc tế</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mã khuyến mãi / Ưu đãi</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="bookPromoCode" class="form-control" placeholder="Ví dụ: HESTORA2026" style="text-transform: uppercase;">
+                <button type="button" id="btnApplyPromo" class="btn-pill btn-ghost" style="white-space: nowrap; padding: 0 14px; font-size: 0.85rem;">Áp dụng</button>
+              </div>
+              <div id="promoFeedback" style="font-size: 0.8rem; margin-top: 4px; display: none;"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Yêu cầu đặc biệt (tùy chọn)</label>
+            <input type="text" id="bookSpecialRequests" class="form-control" placeholder="Ví dụ: Tầng cao, nhận phòng sớm, nôi trẻ em...">
+          </div>
+
+          <!-- Price Calculation Box -->
+          <div class="booking-summary-box">
+            <div class="booking-summary-row">
+              <span>Thời gian lưu trú:</span>
+              <span id="summaryNights">1 đêm</span>
+            </div>
+            <div class="booking-summary-row" id="rowDiscount" style="display: none; color: #4ade80;">
+              <span>Giảm giá ưu đãi:</span>
+              <span id="summaryDiscount">-0đ</span>
+            </div>
+            <div class="booking-summary-row">
+              <span>Thuế & Phí dịch vụ:</span>
+              <span>Đã bao gồm (VAT 8%)</span>
+            </div>
+            <div class="booking-summary-total">
+              <span>Tổng thanh toán:</span>
+              <span id="summaryTotalPrice" style="color: var(--accent-light);">0đ</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-pill btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">
+            Xác nhận đặt phòng
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       AUTHENTICATION MODAL (LOGIN & REGISTER)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="authModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title">Tài khoản Hestora</h3>
+        <button class="modal-close-btn" id="closeAuthModal" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Tab Selector -->
+        <div class="auth-tabs">
+          <div class="auth-tab active" id="tabLogin">Đăng nhập</div>
+          <div class="auth-tab" id="tabRegister">Đăng ký mới</div>
+        </div>
+
+        <!-- Login Form -->
+        <form id="formLogin">
+          <div class="form-group">
+            <label class="form-label">Email hoặc Số điện thoại</label>
+            <input type="email" id="loginEmail" class="form-control" placeholder="email@domain.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mật khẩu</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn-pill btn-primary" style="width: 100%; padding: 12px; margin-top: 10px;">
+            Đăng nhập ngay
+          </button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="formRegister" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Họ và tên</label>
+            <input type="text" id="regName" class="form-control" placeholder="Họ và tên của bạn" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Địa chỉ Email</label>
+            <input type="email" id="regEmail" class="form-control" placeholder="email@domain.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mật khẩu mới</label>
+            <input type="password" id="regPassword" class="form-control" placeholder="Ít nhất 6 ký tự" required minlength="6">
+          </div>
+          <button type="submit" class="btn-pill btn-primary" style="width: 100%; padding: 12px; margin-top: 10px;">
+            Tạo tài khoản
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Logic -->
+  <script src="js/main.js"></script>
 </body>
 </html>
