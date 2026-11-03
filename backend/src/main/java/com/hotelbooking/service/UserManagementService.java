@@ -5,12 +5,14 @@ import com.hotelbooking.dto.UserSummaryResponse;
 import com.hotelbooking.dto.UpdateUserRequest;
 import com.hotelbooking.model.User;
 import com.hotelbooking.repository.UserRepository;
+import com.hotelbooking.dto.UpdateUserRoleRequest;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 
 @Service
 public class UserManagementService {
@@ -110,7 +112,7 @@ public class UserManagementService {
                 UserSummaryResponse.fromUser(updatedUser)
         );
     }
-
+    
     // FR-82: Khoa hoac mo khoa tai khoan nguoi dung
     @Transactional
     public Optional<UserSummaryResponse> changeUserStatus(
@@ -137,6 +139,62 @@ public class UserManagementService {
         // Luu vao PostgreSQL
         User savedUser = userRepository.save(user);
 
+        return Optional.of(
+                UserSummaryResponse.fromUser(savedUser)
+        );
+    }
+    
+    // FR-83: ADMIN thay doi vai tro nguoi dung
+    @Transactional
+    public Optional<UserSummaryResponse> updateUserRole(
+            Long userId,
+            UpdateUserRoleRequest request,
+            Long adminId) {
+
+        // Kiem tra du lieu dau vao
+        if (request == null || request.getRole() == null) {
+            throw new IllegalArgumentException(
+                    "Vai tro khong duoc de trong");
+        }
+
+        String newRole = request.getRole()
+                .trim()
+                .toUpperCase(Locale.ROOT);
+
+        // Chi cho phep cac vai tro hop le
+        if (!newRole.equals("USER")
+                && !newRole.equals("MANAGER")
+                && !newRole.equals("ADMIN")) {
+
+            throw new IllegalArgumentException(
+                    "Vai tro khong hop le");
+        }
+
+        // Tim tai khoan can phan quyen
+        Optional<User> userOptional =
+                userRepository.findById(userId);
+
+        if (userOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        User user = userOptional.get();
+
+        // Ngan ADMIN tu thay doi vai tro cua minh
+        if (userId.equals(adminId)
+                && !newRole.equals(user.getRole())) {
+
+            throw new IllegalArgumentException(
+                    "ADMIN khong the tu thay doi vai tro");
+        }
+
+        // Cap nhat vai tro
+        user.setRole(newRole);
+
+        // Luu thay doi vao PostgreSQL
+        User savedUser = userRepository.save(user);
+
+        // Tra ve thong tin khong chua mat khau
         return Optional.of(
                 UserSummaryResponse.fromUser(savedUser)
         );
