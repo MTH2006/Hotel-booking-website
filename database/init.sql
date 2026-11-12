@@ -105,6 +105,7 @@ CREATE TABLE bookings (
     hotel_id BIGINT NOT NULL REFERENCES hotels(id) ON DELETE RESTRICT,
     room_id BIGINT REFERENCES rooms(id) ON DELETE SET NULL,
     user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    hidden_from_user BOOLEAN NOT NULL DEFAULT FALSE,
     hotel_name VARCHAR(255) NOT NULL,
     guest_name VARCHAR(150) NOT NULL,
     guest_phone VARCHAR(20) NOT NULL,

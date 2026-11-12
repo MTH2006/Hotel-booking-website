@@ -532,6 +532,22 @@
     </div>
   </div>
 
+  <!-- ========================================================================
+       MY BOOKINGS MODAL
+       ======================================================================== -->
+  <div class="modal-backdrop" id="myBookingsModal" role="dialog" aria-modal="true" aria-labelledby="myBookingsTitle">
+    <div class="modal-card my-bookings-card">
+      <div class="modal-head">
+        <h3 class="modal-title" id="myBookingsTitle">Đơn đặt phòng của tôi</h3>
+        <button type="button" class="modal-close-btn" id="closeMyBookingsModal" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body my-bookings-body">
+        <p class="my-bookings-hint">Danh sách các đơn đặt phòng gắn với tài khoản của bạn.</p>
+        <div id="myBookingsList" class="my-bookings-list" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==========================================================================
        AUTHENTICATION MODAL (LOGIN & REGISTER)
        ========================================================================== -->
@@ -545,18 +561,18 @@
 
         <!-- Tab Selector -->
         <div class="auth-tabs">
-          <div class="auth-tab active" id="tabLogin">Đăng nhập</div>
-          <div class="auth-tab" id="tabRegister">Đăng ký mới</div>
+          <button type="button" class="auth-tab active" id="tabLogin" role="tab" aria-selected="true">Đăng nhập</button>
+          <button type="button" class="auth-tab" id="tabRegister" role="tab" aria-selected="false">Đăng ký mới</button>
         </div>
 
         <!-- Login Form -->
         <form id="formLogin">
           <div class="form-group">
-            <label class="form-label">Email hoặc Số điện thoại</label>
+            <label class="form-label" for="loginEmail">Địa chỉ Email</label>
             <input type="email" id="loginEmail" class="form-control" placeholder="email@domain.com" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Mật khẩu</label>
+            <label class="form-label" for="loginPassword">Mật khẩu</label>
             <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
           </div>
           <button type="submit" class="btn-pill btn-primary" style="width: 100%; padding: 12px; margin-top: 10px;">
@@ -567,15 +583,15 @@
         <!-- Register Form -->
         <form id="formRegister" style="display: none;">
           <div class="form-group">
-            <label class="form-label">Họ và tên</label>
+            <label class="form-label" for="regName">Họ và tên</label>
             <input type="text" id="regName" class="form-control" placeholder="Họ và tên của bạn" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Địa chỉ Email</label>
+            <label class="form-label" for="regEmail">Địa chỉ Email</label>
             <input type="email" id="regEmail" class="form-control" placeholder="email@domain.com" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Mật khẩu mới</label>
+            <label class="form-label" for="regPassword">Mật khẩu</label>
             <input type="password" id="regPassword" class="form-control" placeholder="Ít nhất 6 ký tự" required minlength="6">
           </div>
           <button type="submit" class="btn-pill btn-primary" style="width: 100%; padding: 12px; margin-top: 10px;">
@@ -591,6 +607,6 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Application Logic -->
-  <script src="js/main.js"></script>
+  <script src="js/main.js?v=20261112-account-chevron-v1"></script>
 </body>
 </html>

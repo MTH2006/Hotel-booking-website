@@ -90,9 +90,6 @@ public class Room {
 
     public Long getPricePerNight() { return pricePerNight; }
     public void setPricePerNight(Long pricePerNight) { this.pricePerNight = pricePerNight; }
-    public void setPricePerNight(BigDecimal pricePerNight) {
-        this.pricePerNight = pricePerNight != null ? pricePerNight.longValue() : 0L;
-    }
 
     public BigDecimal getPricePerNightBigDecimal() {
         return pricePerNight != null ? BigDecimal.valueOf(pricePerNight) : BigDecimal.ZERO;

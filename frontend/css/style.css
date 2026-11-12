@@ -1155,6 +1155,11 @@ input, select {
   animation: modalZoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.my-bookings-card { max-width: 860px; max-height: 88vh; display: flex; flex-direction: column; }
+.my-bookings-body { overflow-y: auto; }
+.my-bookings-hint { color: var(--text-secondary); margin-bottom: 16px; }
+.my-bookings-list { display: grid; gap: 12px; }
+
 @keyframes modalZoomIn {
   from {
     opacity: 0;
@@ -1212,6 +1217,10 @@ input, select {
 .auth-tab {
   flex: 1;
   padding: 12px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font: inherit;
   font-size: 0.95rem;
   font-weight: 600;
   text-align: center;
@@ -1225,6 +1234,21 @@ input, select {
   color: var(--accent-light);
   border-bottom-color: var(--accent-primary);
 }
+
+.header-actions { position: relative; }
+.account-trigger { display: inline-flex; align-items: center; gap: 9px; max-width: 210px; }
+.account-avatar { display: inline-grid; place-items: center; width: 27px; height: 27px; flex: 0 0 27px; border-radius: 50%; background: var(--accent-primary); color: #fff; font-size: .8rem; font-weight: 700; }
+.account-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-chevron { width: 7px; height: 7px; flex: 0 0 7px; margin: -4px 1px 0 3px; border-right: 1.5px solid var(--text-secondary); border-bottom: 1.5px solid var(--text-secondary); border-radius: 0 0 1px; transform: rotate(45deg); transition: transform var(--transition-fast), border-color var(--transition-fast); }
+.account-trigger:hover .account-chevron { border-color: var(--text-primary); }
+.account-trigger[aria-expanded="true"] .account-chevron { margin-top: 4px; transform: rotate(225deg); }
+.account-menu { position: absolute; z-index: 1001; top: calc(100% + 12px); right: 0; width: 250px; padding: 8px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: 0 16px 40px rgba(0,0,0,.38); }
+.account-menu-heading { display: flex; flex-direction: column; gap: 4px; padding: 11px 12px 13px; margin-bottom: 4px; border-bottom: 1px solid var(--border-subtle); }
+.account-menu-heading strong { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu-heading span { color: var(--text-secondary); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; }
+.account-menu button { display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); text-align: left; font: inherit; cursor: pointer; }
+.account-menu button:hover { background: rgba(255,255,255,.07); }
+.account-menu button.account-logout { color: #e49b8e; }
 
 .form-group {
   margin-bottom: 18px;
@@ -1398,6 +1422,7 @@ input, select {
   .header-actions .btn-ghost {
     display: none;
   }
+  .header-actions .account-trigger { display: inline-flex; max-width: 145px; }
 
   .hero-title {
     font-size: 2.3rem;

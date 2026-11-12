@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$Port = 3000
 )
 
@@ -95,7 +95,10 @@ try {
             $response.StatusCode = 200
         } else {
             $response.StatusCode = 404
-            $notFoundHtml = "<!doctype html><html><head><meta charset='utf-8'><title>404</title></head><body style='font-family:sans-serif;text-align:center;padding:50px;'><h2>404 - Không tìm thấy trang</h2><p>Đường dẫn <code>$localPath</code> không tồn tại trên máy chủ HESTORA.</p><p><a href='/'>← Về Trang chủ</a> | <a href='/hotel-management.html'>Trang Quản trị</a></p></body></html>"
+            $notFoundHtml = @'
+<!doctype html><html><head><meta charset="utf-8"><title>404</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h2>404 - Không tìm thấy trang</h2><p>Đường dẫn <code>__REQUEST_PATH__</code> không tồn tại trên máy chủ HESTORA.</p><p><a href="/">← Về Trang chủ</a> | <a href="/hotel-management.html">Trang Quản trị</a></p></body></html>
+'@
+            $notFoundHtml = $notFoundHtml.Replace("__REQUEST_PATH__", [System.Net.WebUtility]::HtmlEncode($localPath))
             $notFoundBytes = [System.Text.Encoding]::UTF8.GetBytes($notFoundHtml)
             $response.ContentType = "text/html; charset=utf-8"
             $response.OutputStream.Write($notFoundBytes, 0, $notFoundBytes.Length)

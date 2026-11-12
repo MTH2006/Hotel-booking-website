@@ -1,7 +1,6 @@
 package com.hotelbooking.model;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -32,6 +31,9 @@ public class Booking {
 
     @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "hidden_from_user", nullable = false)
+    private Boolean hiddenFromUser = false;
 
     @Column(name = "hotel_name", nullable = false)
     private String hotelName;
@@ -125,6 +127,9 @@ public class Booking {
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
+    public Boolean getHiddenFromUser() { return hiddenFromUser; }
+    public void setHiddenFromUser(Boolean hiddenFromUser) { this.hiddenFromUser = hiddenFromUser; }
+
     public String getHotelName() { return hotelName; }
     public void setHotelName(String hotelName) { this.hotelName = hotelName; }
 
@@ -155,9 +160,6 @@ public class Booking {
 
     public Long getTotalPrice() { return totalPrice; }
     public void setTotalPrice(Long totalPrice) { this.totalPrice = totalPrice; }
-    public void setTotalPrice(BigDecimal totalPrice) {
-        this.totalPrice = totalPrice != null ? totalPrice.longValue() : 0L;
-    }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

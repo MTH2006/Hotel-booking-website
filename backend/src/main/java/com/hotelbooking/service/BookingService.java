@@ -163,7 +163,23 @@ public class BookingService {
     }
 
     public List<Booking> getBookingsByUserId(Long userId) {
-        return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return bookingRepository.findByUserIdAndHiddenFromUserFalseOrderByCreatedAtDesc(userId);
+    }
+
+    @Transactional
+    public boolean hideCancelledBookingForUser(String bookingId, Long userId) {
+        Optional<Booking> found = bookingRepository.findByBookingId(bookingId);
+        if (found.isEmpty()) return false;
+
+        Booking booking = found.get();
+        if (!userId.equals(booking.getUserId())
+                || !Booking.BookingStatus.CANCELLED.equals(booking.getStatus())) {
+            return false;
+        }
+
+        booking.setHiddenFromUser(true);
+        bookingRepository.save(booking);
+        return true;
     }
 
     @Transactional

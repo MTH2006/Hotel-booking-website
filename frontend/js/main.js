@@ -89,7 +89,7 @@
         const response = await fetch(`${API_BASE_URL}/hotels/featured`, { signal: AbortSignal.timeout(1000) });
         if (!response.ok) throw new Error('Network error');
         const result = await response.json();
-        return Array.isArray(result) ? result : FEATURED_HOTELS;
+        return Array.isArray(result) && result.length > 0 ? result : FEATURED_HOTELS;
       } catch {
         return FEATURED_HOTELS;
       }
@@ -99,7 +99,12 @@
       try {
         const response = await fetch(`${API_BASE_URL}/hotels/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(1000) });
         if (!response.ok) throw new Error('Network error');
-        return await response.json();
+        const result = await response.json();
+        if (Array.isArray(result) && result.length > 0) return result;
+        const q = (query || '').toLowerCase().trim();
+        return q
+          ? FEATURED_HOTELS.filter(h => `${h.name} ${h.location} ${h.city}`.toLowerCase().includes(q))
+          : FEATURED_HOTELS;
       } catch {
         const q = (query || '').toLowerCase().trim();
         if (!q) return FEATURED_HOTELS;
@@ -112,6 +117,7 @@
     },
 
     async createBooking(bookingData) {
+      let serverResponded = false;
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (state.currentUser?.token) {
@@ -121,31 +127,24 @@
           method: 'POST',
           headers,
           body: JSON.stringify(bookingData),
-          signal: AbortSignal.timeout(1500)
+          signal: AbortSignal.timeout(10000)
         });
+        serverResponded = true;
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.message || 'Booking failed');
+          return { success: false, message: errData.message || 'Máy chủ không thể lưu đơn đặt phòng. Vui lòng thử lại.' };
         }
         const res = await response.json();
         return res;
       } catch (err) {
-        // Fallback local storage creation
-        const newBooking = {
-          bookingId: 'HB-' + Math.floor(100000 + Math.random() * 900000),
-          createdAt: new Date().toISOString(),
-          status: 'CONFIRMED',
-          paymentStatus: bookingData.paymentMethod === 'CASH_ON_ARRIVAL' ? 'PENDING' : 'PAID',
-          ...bookingData
+        return {
+          success: false,
+          message: serverResponded
+            ? (err.message || 'Không thể lưu đơn đặt phòng. Vui lòng thử lại.')
+            : (err.name === 'TimeoutError'
+              ? 'Máy chủ xử lý quá lâu. Đơn chưa được xác nhận, vui lòng thử lại.'
+              : 'Không kết nối được máy chủ. Đơn chưa được xác nhận, vui lòng thử lại.')
         };
-        try {
-          const saved = JSON.parse(localStorage.getItem('hotel_bookings') || '[]');
-          saved.unshift(newBooking);
-          localStorage.setItem('hotel_bookings', JSON.stringify(saved));
-        } catch (e) {
-          console.warn('Storage not available', e);
-        }
-        return { success: true, booking: newBooking, message: 'Đặt phòng thành công!' };
       }
     },
 
@@ -159,7 +158,10 @@
         });
         if (!response.ok) {
           const err = await response.json().catch(() => ({}));
-          throw new Error(err.message || 'Auth error');
+          const message = err.message || (type === 'register'
+            ? 'Không thể tạo tài khoản. Email có thể đã được đăng ký hoặc thông tin chưa hợp lệ.'
+            : 'Email hoặc mật khẩu không chính xác, hoặc tài khoản đã bị khóa.');
+          return { success: false, message };
         }
         const result = await response.json();
         if (result.success && result.user) {
@@ -168,19 +170,12 @@
         }
         return result;
       } catch (err) {
-        const user = {
-          id: 'usr_' + Date.now(),
-          email: credentials.email,
-          name: credentials.name || credentials.email.split('@')[0],
-          token: 'jwt_mock_' + Date.now(),
-          role: credentials.email.includes('admin') ? 'ADMIN' : (credentials.email.includes('staff') ? 'STAFF' : 'USER')
-        };
-        try {
-          localStorage.setItem('hotel_user', JSON.stringify(user));
-        } catch (e) {
-          console.warn('Storage not available', e);
-        }
-        return { success: true, user, token: user.token };
+        const message = err.name === 'TimeoutError'
+          ? 'Máy chủ phản hồi chậm. Vui lòng thử lại.'
+          : (err instanceof TypeError
+            ? 'Không kết nối được máy chủ. Hãy bật backend rồi thử lại.'
+            : (err.message || 'Không thể kết nối máy chủ. Vui lòng thử lại.'));
+        return { success: false, message };
       }
     },
 
@@ -228,20 +223,26 @@
     },
 
     async getMyBookings() {
+      if (!state.currentUser?.token) return [];
       try {
-        const headers = {};
-        if (state.currentUser?.token) {
-          headers['Authorization'] = `Bearer ${state.currentUser.token}`;
-        }
+        const headers = { Authorization: `Bearer ${state.currentUser.token}` };
         const response = await fetch(`${API_BASE_URL}/bookings/my`, { headers, signal: AbortSignal.timeout(1500) });
-        if (response.ok) return await response.json();
-        throw new Error('Fallback');
-      } catch {
-        try {
-          return JSON.parse(localStorage.getItem('hotel_bookings') || '[]');
-        } catch {
-          return [];
+        if (response.ok) {
+          const bookings = await response.json();
+          return Array.isArray(bookings) ? bookings : [];
         }
+        if (response.status === 401) {
+          localStorage.removeItem('hotel_user');
+          state.currentUser = null;
+          updateUserUI();
+          showToast('Phiên đăng nhập đã hết hạn. Đăng nhập lại để xem đầy đủ đơn đặt phòng.', 'error');
+          setTimeout(() => openAuthModal('login'), 250);
+        }
+        return [];
+      } catch (err) {
+        console.error('Could not load account bookings from API.', err);
+        showToast('Không tải được đơn đặt phòng. Vui lòng thử lại.', 'error');
+        return [];
       }
     },
 
@@ -276,6 +277,24 @@
           return { success: true, message: 'Đã hủy đơn thành công' };
         }
         return { success: false, message: 'Không tìm thấy đơn để hủy' };
+      }
+    },
+
+    async hideCancelledBooking(bookingId) {
+      if (!state.currentUser?.token) return { success: false, message: 'Vui lòng đăng nhập lại.' };
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(bookingId)}/my`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${state.currentUser.token}` },
+          signal: AbortSignal.timeout(5000)
+        });
+        const result = await response.json().catch(() => ({}));
+        if (response.status === 404 && !result.message) {
+          return { success: false, message: 'Backend chưa có chức năng xóa đơn. Hãy chạy lại docker compose up --build để cập nhật backend.' };
+        }
+        return response.ok ? result : { success: false, message: result.message || 'Không thể xóa đơn khỏi lịch sử.' };
+      } catch {
+        return { success: false, message: 'Không kết nối được máy chủ. Vui lòng thử lại.' };
       }
     },
 
@@ -346,6 +365,10 @@
   let savedUser = null;
   try {
     savedUser = JSON.parse(localStorage.getItem('hotel_user') || 'null');
+    if (savedUser?.token?.startsWith('jwt_mock_')) {
+      localStorage.removeItem('hotel_user');
+      savedUser = null;
+    }
   } catch (e) {
     savedUser = null;
   }
@@ -367,6 +390,12 @@
   // Helper Functions
   function formatVND(amount) {
     return new Intl.NumberFormat('vi-VN').format(Math.round(amount || 0)) + 'đ';
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
   }
 
   function formatDateDisplay(dateStr) {
@@ -471,43 +500,65 @@
   function updateUserUI() {
     const loginBtn = document.getElementById('btnNavLogin');
     const registerBtn = document.getElementById('btnNavRegister');
+    const adminLink = document.getElementById('navAdmin');
 
     if (state.currentUser && loginBtn && registerBtn) {
-      loginBtn.innerHTML = `
-        <span style="display: flex; align-items: center; gap: 6px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          ${state.currentUser.name}
-        </span>
-      `;
-      loginBtn.onclick = () => {
-        const isAdminOrStaff = state.currentUser.role === 'ADMIN' || state.currentUser.role === 'STAFF';
-        const choices = ['1. Đơn đặt phòng của tôi', '2. Đổi mật khẩu'];
-        if (isAdminOrStaff) choices.push('3. Quản trị hệ thống (Admin/Staff)');
-        choices.push('4. Đăng xuất');
-
-        const ans = prompt(`Xin chào ${state.currentUser.name} (${state.currentUser.role || 'USER'})!\n\nChọn thao tác:\n` + choices.join('\n') + '\n\nNhập số tương ứng:');
-        if (ans === '1') {
-          openMyBookingsModal();
-        } else if (ans === '2') {
-          openPasswordModal();
-        } else if (ans === '3' && isAdminOrStaff) {
-          window.location.href = 'hotel-management.html';
-        } else if (ans === '4' || ans === '3' && !isAdminOrStaff) {
-          try { localStorage.removeItem('hotel_user'); } catch (e) {}
-          state.currentUser = null;
-          updateUserUI();
-          showToast('Đã đăng xuất thành công', 'info');
+      const name = String(state.currentUser.name || state.currentUser.email || 'Tài khoản');
+      const safeName = escapeHtml(name);
+      const safeEmail = escapeHtml(state.currentUser.email || '');
+      const initial = name.trim().charAt(0).toLocaleUpperCase('vi-VN') || 'T';
+      loginBtn.classList.add('account-trigger');
+      loginBtn.setAttribute('aria-haspopup', 'true');
+      loginBtn.setAttribute('aria-expanded', 'false');
+      loginBtn.innerHTML = `<span class="account-avatar" aria-hidden="true">${escapeHtml(initial)}</span><span class="account-name">${safeName}</span><span class="account-chevron" aria-hidden="true"></span>`;
+      loginBtn.onclick = (event) => {
+        event.stopPropagation();
+        const existing = document.getElementById('accountMenu');
+        if (existing) {
+          existing.remove();
+          loginBtn.setAttribute('aria-expanded', 'false');
+          return;
         }
+        document.querySelectorAll('#accountMenu').forEach((menu) => menu.remove());
+        const menu = document.createElement('div');
+        menu.id = 'accountMenu';
+        menu.className = 'account-menu';
+        const isAdminOrStaff = ['ADMIN', 'STAFF'].includes(String(state.currentUser.role || '').toUpperCase());
+        menu.innerHTML = `<div class="account-menu-heading"><strong>${safeName}</strong><span>${safeEmail}</span></div><button type="button" data-action="bookings">Đơn đặt phòng của tôi</button><button type="button" data-action="password">Đổi mật khẩu</button>${isAdminOrStaff ? '<button type="button" data-action="admin">Quản trị khách sạn</button>' : ''}<button type="button" class="account-logout" data-action="logout">Đăng xuất</button>`;
+        loginBtn.parentElement?.appendChild(menu);
+        loginBtn.setAttribute('aria-expanded', 'true');
+        menu.addEventListener('click', (e) => {
+          const action = e.target.closest('[data-action]')?.dataset.action;
+          menu.remove();
+          loginBtn.setAttribute('aria-expanded', 'false');
+          if (action === 'bookings') openMyBookingsModal();
+          if (action === 'password') openPasswordModal();
+          if (action === 'admin') window.location.href = 'hotel-management.html';
+          if (action === 'logout') {
+            localStorage.removeItem('hotel_user');
+            state.currentUser = null;
+            updateUserUI();
+            showToast('Đã đăng xuất thành công', 'info');
+          }
+        });
+        const dismiss = (e) => {
+          if (!menu.contains(e.target) && e.target !== loginBtn) {
+            menu.remove();
+            loginBtn.setAttribute('aria-expanded', 'false');
+            document.removeEventListener('click', dismiss);
+          }
+        };
+        setTimeout(() => document.addEventListener('click', dismiss), 0);
       };
       registerBtn.style.display = 'none';
+      if (adminLink) adminLink.style.display = ['ADMIN', 'STAFF'].includes(String(state.currentUser.role || '').toUpperCase()) ? '' : 'none';
     } else if (loginBtn && registerBtn) {
+      loginBtn.classList.remove('account-trigger');
       loginBtn.textContent = 'Đăng nhập';
       loginBtn.onclick = () => openAuthModal('login');
       registerBtn.style.display = 'inline-flex';
       registerBtn.onclick = () => openAuthModal('register');
+      if (adminLink) adminLink.style.display = 'none';
     }
   }
 
@@ -689,7 +740,8 @@
      HOTELS RENDERING
      ========================================================================== */
   async function loadFeaturedHotels() {
-    state.hotels = await HotelAPI.getFeaturedHotels();
+    const hotels = await HotelAPI.getFeaturedHotels();
+    state.hotels = Array.isArray(hotels) && hotels.length > 0 ? hotels : FEATURED_HOTELS;
     renderHotelCards(state.hotels);
   }
 
@@ -876,9 +928,8 @@
         submitBtn.disabled = false;
         submitBtn.textContent = 'Xác nhận đặt phòng';
       }
-      modal?.classList.remove('active');
-
       if (res.success) {
+        modal?.classList.remove('active');
         const bId = res.booking?.bookingId || 'HB-' + Math.floor(100000 + Math.random() * 900000);
         showToast(`Chúc mừng! Đặt phòng thành công tại ${state.selectedHotel?.name}. Mã đơn: ${bId}`);
         openVoucherModal(bId);
@@ -1027,57 +1078,33 @@
   function initMyBookingsModal() {
     const modal = document.getElementById('myBookingsModal');
     const closeBtn = document.getElementById('closeMyBookingsModal');
-    const btnLookup = document.getElementById('btnLookupBooking');
 
     closeBtn?.addEventListener('click', () => modal?.classList.remove('active'));
     modal?.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.remove('active');
     });
 
-    btnLookup?.addEventListener('click', async () => {
-      const q = (document.getElementById('lookupBookingQuery')?.value || '').trim();
-      if (!q) {
-        showToast('Vui lòng nhập Mã đặt phòng hoặc Email', 'error');
-        return;
-      }
-      renderMyBookingsList(q);
-    });
   }
 
   async function openMyBookingsModal() {
     const modal = document.getElementById('myBookingsModal');
     if (!modal) return;
     modal.classList.add('active');
-    const userQuery = state.currentUser?.email || '';
-    const inp = document.getElementById('lookupBookingQuery');
-    if (inp) inp.value = userQuery;
-    renderMyBookingsList(userQuery);
+    renderMyBookingsList();
   }
 
-  async function renderMyBookingsList(query = '') {
+  async function renderMyBookingsList() {
     const list = document.getElementById('myBookingsList');
     if (!list) return;
 
     list.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 24px;">Đang tìm kiếm đơn đặt phòng...</div>`;
-    let bookings = [];
-
-    if (query) {
-      const single = await HotelAPI.lookupBooking(query);
-      if (single) bookings = [single];
-      else {
-        const all = await HotelAPI.getMyBookings();
-        bookings = all.filter(b => (b.bookingId && b.bookingId.toLowerCase().includes(query.toLowerCase())) ||
-                                   (b.guestEmail && b.guestEmail.toLowerCase().includes(query.toLowerCase())));
-      }
-    } else {
-      bookings = await HotelAPI.getMyBookings();
-    }
+    let bookings = await HotelAPI.getMyBookings();
 
     if (!bookings || bookings.length === 0) {
       list.innerHTML = `
         <div style="text-align: center; padding: 32px 0; color: var(--text-secondary);">
-          <p style="font-size: 1rem; margin-bottom: 12px;">Không tìm thấy lịch sử đơn đặt phòng nào.</p>
-          <small>Hãy kiểm tra lại mã đặt phòng hoặc email đã sử dụng khi đặt.</small>
+          <p style="font-size: 1rem; margin-bottom: 12px;">${state.currentUser ? 'Tài khoản này chưa có đơn đặt phòng nào.' : 'Không tìm thấy đơn đặt phòng.'}</p>
+          <small>${state.currentUser ? 'Các đơn mới sẽ xuất hiện tại đây sau khi bạn đặt phòng khi đang đăng nhập.' : 'Hãy kiểm tra lại mã đặt phòng hoặc email đã dùng khi đặt.'}</small>
         </div>
       `;
       return;
@@ -1113,6 +1140,11 @@
           <button class="btn-pill btn-ghost btn-view-voucher" data-id="${b.bookingId}" style="padding: 6px 14px; font-size: 0.8rem;">
             Xem Voucher
           </button>
+          ${b.status === 'CANCELLED' ? `
+            <button class="btn-pill btn-ghost btn-delete-cancelled-booking" data-id="${b.bookingId}" style="padding: 6px 14px; font-size: 0.8rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4);">
+              Xóa
+            </button>
+          ` : ''}
           ${(b.status === 'CONFIRMED' || b.status === 'PENDING') ? `
             <button class="btn-pill btn-ghost btn-cancel-booking" data-id="${b.bookingId}" style="padding: 6px 14px; font-size: 0.8rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4);">
               Hủy phòng
@@ -1130,6 +1162,24 @@
     list.querySelectorAll('.btn-view-voucher').forEach(btn => {
       btn.addEventListener('click', () => {
         openVoucherModal(btn.getAttribute('data-id'));
+      });
+    });
+
+    list.querySelectorAll('.btn-delete-cancelled-booking').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        if (!confirm(`Xóa đơn đã hủy [${id}] khỏi lịch sử tài khoản?`)) return;
+        btn.disabled = true;
+        btn.textContent = 'Đang xóa...';
+        const res = await HotelAPI.hideCancelledBooking(id);
+        if (res.success) {
+          showToast(`Đã xóa đơn [${id}] khỏi lịch sử tài khoản.`);
+          renderMyBookingsList();
+        } else {
+          showToast(res.message || 'Không thể xóa đơn.', 'error');
+          btn.disabled = false;
+          btn.textContent = 'Xóa';
+        }
       });
     });
 
@@ -1359,14 +1409,18 @@
 
     tabLogin?.addEventListener('click', () => {
       tabLogin.classList.add('active');
+      tabLogin.setAttribute('aria-selected', 'true');
       tabRegister?.classList.remove('active');
+      tabRegister?.setAttribute('aria-selected', 'false');
       if (formLogin) formLogin.style.display = 'block';
       if (formRegister) formRegister.style.display = 'none';
     });
 
     tabRegister?.addEventListener('click', () => {
       tabRegister.classList.add('active');
+      tabRegister.setAttribute('aria-selected', 'true');
       tabLogin?.classList.remove('active');
+      tabLogin?.setAttribute('aria-selected', 'false');
       if (formRegister) formRegister.style.display = 'block';
       if (formLogin) formLogin.style.display = 'none';
     });
@@ -1382,7 +1436,8 @@
         updateUserUI();
         modal?.classList.remove('active');
         showToast(`Đăng nhập thành công! Chào mừng ${res.user.name}`);
-      }
+        if (document.getElementById('myBookingsModal')?.classList.contains('active')) renderMyBookingsList();
+      } else showToast(res.message || 'Email hoặc mật khẩu không đúng.', 'error');
     });
 
     formRegister?.addEventListener('submit', async (e) => {
@@ -1397,7 +1452,7 @@
         updateUserUI();
         modal?.classList.remove('active');
         showToast(`Đăng ký tài khoản thành công! Chào mừng ${res.user.name}`);
-      }
+      } else showToast(res.message || 'Chưa thể tạo tài khoản. Kiểm tra thông tin và thử lại.', 'error');
     });
   }
 
