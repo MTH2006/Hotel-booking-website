@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 
-// Mock data cho danh sách đơn đặt phòng
 let staffBookings = [
     { id: 1, bookingCode: 'BK101', customerName: 'Nguyễn Văn A', hotel: 'Hotel Ha Long', date: '2026-06-10', status: 'Pending' },
     { id: 2, bookingCode: 'BK102', customerName: 'Trần Thị B', hotel: 'Hotel Da Nang', date: '2026-06-12', status: 'Confirmed' }
