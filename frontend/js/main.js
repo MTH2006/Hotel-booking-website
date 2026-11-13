@@ -116,12 +116,6 @@
       }
     },
 
-    async getRoomsByHotel(hotelId) {
-      const response = await fetch(`${API_BASE_URL}/hotels/${hotelId}/rooms`);
-      if (!response.ok) throw new Error('Không thể tải danh sách hạng phòng.');
-      return await response.json();
-    },
-
     async createBooking(bookingData) {
       let serverResponded = false;
       try {
@@ -208,8 +202,7 @@
           signal: AbortSignal.timeout(1200)
         });
         if (!response.ok) throw new Error('Apply failed');
-        const result = await response.json();
-        return { ...result, success: result.valid === true };
+        return await response.json();
       } catch {
         const c = (code || '').toUpperCase().trim();
         if (c === 'HESTORA2026') {
@@ -389,7 +382,6 @@
     rooms: 1,
     hotels: [...FEATURED_HOTELS],
     selectedHotel: null,
-    selectedRoom: null,
     selectedHotelTotal: null,
     appliedPromo: null,
     currentUser: savedUser
@@ -878,8 +870,8 @@
         const diff = Math.round((new Date(outVal) - new Date(inVal)) / (1000 * 60 * 60 * 24));
         nights = Math.max(1, isNaN(diff) ? 1 : diff);
       }
-      const quantity = Math.max(1, parseInt(document.getElementById('bookRoomQuantity')?.value, 10) || 1);
-      const rawTotal = (state.selectedRoom?.pricePerNight || 0) * nights * quantity;
+      const roomMultiplier = parseFloat(document.getElementById('bookRoomType')?.value) || 1.0;
+      const rawTotal = (state.selectedHotel?.price || 0) * nights * roomMultiplier;
 
       const res = await HotelAPI.applyPromotion(code, rawTotal);
       btnApplyPromo.disabled = false;
@@ -916,15 +908,6 @@
         submitBtn.textContent = 'Đang tiến hành đặt phòng...';
       }
 
-      if (!state.selectedRoom) {
-        showToast('Vui lòng chọn hạng phòng còn khả dụng.', 'error');
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Xác nhận đặt phòng';
-        }
-        return;
-      }
-
       const bookingPayload = {
         hotelId: state.selectedHotel?.id,
         hotelName: state.selectedHotel?.name,
@@ -933,13 +916,11 @@
         guestEmail: document.getElementById('bookGuestEmail')?.value,
         checkIn: document.getElementById('bookCheckIn')?.value,
         checkOut: document.getElementById('bookCheckOut')?.value,
-        roomId: state.selectedRoom?.id,
-        roomType: state.selectedRoom?.roomType,
-        quantity: Math.max(1, parseInt(document.getElementById('bookRoomQuantity')?.value, 10) || 1),
-        promotionCode: state.appliedPromo?.code || null,
+        roomType: document.getElementById('bookRoomType')?.value,
+        promoCode: state.appliedPromo?.code || null,
         paymentMethod: document.getElementById('bookPaymentMethod')?.value || 'CASH_ON_ARRIVAL',
         specialRequests: document.getElementById('bookSpecialRequests')?.value || '',
-        totalPrice: null
+        totalPrice: state.selectedHotelTotal || state.selectedHotel?.price
       };
 
       const res = await HotelAPI.createBooking(bookingPayload);
@@ -958,9 +939,8 @@
     });
   }
 
-  async function openBookingModal(hotel) {
+  function openBookingModal(hotel) {
     state.selectedHotel = hotel;
-    state.selectedRoom = null;
     state.appliedPromo = null;
     const modal = document.getElementById('bookingModal');
     if (!modal) return;
@@ -979,25 +959,6 @@
     if (promoFeedback) promoFeedback.style.display = 'none';
     if (promoInp) promoInp.value = '';
 
-    const roomSelect = document.getElementById('bookRoomType');
-    const quantityInput = document.getElementById('bookRoomQuantity');
-    if (quantityInput) quantityInput.value = '1';
-    if (roomSelect) {
-      roomSelect.innerHTML = '<option value="">Đang tải hạng phòng...</option>';
-      try {
-        const rooms = await HotelAPI.getRoomsByHotel(hotel.id);
-        const availableRooms = rooms.filter(room => room.isActive !== false && room.status === 'AVAILABLE');
-        roomSelect.innerHTML = availableRooms.map(room =>
-          `<option value="${room.id}">${escapeHtml(room.roomType)} - ${formatVND(room.pricePerNight)}/đêm (còn tổng ${room.totalRooms} phòng)</option>`
-        ).join('');
-        state.selectedRoom = availableRooms[0] || null;
-        if (!state.selectedRoom) roomSelect.innerHTML = '<option value="">Khách sạn chưa có hạng phòng khả dụng</option>';
-      } catch (error) {
-        roomSelect.innerHTML = '<option value="">Không tải được hạng phòng</option>';
-        showToast(error.message, 'error');
-      }
-    }
-
     const inInp = document.getElementById('bookCheckIn');
     const outInp = document.getElementById('bookCheckOut');
     if (inInp) inInp.value = state.checkInDate;
@@ -1015,17 +976,7 @@
     if (inInp) inInp.onchange = calculateBookingSummary;
     if (outInp) outInp.onchange = calculateBookingSummary;
     const roomType = document.getElementById('bookRoomType');
-    if (roomType) roomType.onchange = () => {
-      state.selectedRoom = null;
-      // The selected room is resolved from the already loaded room list below.
-      const selectedId = parseInt(roomType.value, 10);
-      HotelAPI.getRoomsByHotel(hotel.id).then(rooms => {
-        state.selectedRoom = rooms.find(room => room.id === selectedId) || null;
-        state.appliedPromo = null;
-        calculateBookingSummary();
-      }).catch(() => showToast('Không thể tải thông tin hạng phòng.', 'error'));
-    };
-    if (quantityInput) quantityInput.onchange = () => { state.appliedPromo = null; calculateBookingSummary(); };
+    if (roomType) roomType.onchange = calculateBookingSummary;
 
     modal.classList.add('active');
   }
@@ -1044,8 +995,8 @@
       nights = Math.max(1, isNaN(diff) ? 1 : diff);
     }
 
-    const quantity = Math.max(1, parseInt(document.getElementById('bookRoomQuantity')?.value, 10) || 1);
-    const baseTotal = (state.selectedRoom?.pricePerNight || 0) * nights * quantity;
+    const roomMultiplier = parseFloat(document.getElementById('bookRoomType')?.value) || 1.0;
+    const baseTotal = state.selectedHotel.price * nights * roomMultiplier;
 
     let discount = 0;
     if (state.appliedPromo && state.appliedPromo.discountAmount) {

@@ -27,7 +27,7 @@ public class RoomController {
     // FR-63 & FR-17: Lấy danh sách hạng phòng theo khách sạn
     @GetMapping("/hotels/{hotelId}/rooms")
     public ResponseEntity<List<Room>> getRoomsByHotel(@PathVariable Long hotelId) {
-        List<Room> rooms = roomRepository.findByHotelIdAndIsActiveTrue(hotelId);
+        List<Room> rooms = roomRepository.findByHotelId(hotelId);
         return ResponseEntity.ok(rooms);
     }
 
@@ -50,14 +50,8 @@ public class RoomController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        String validationError = validateRoom(room, true);
-        if (validationError != null) return ResponseEntity.badRequest().build();
-        if (roomRepository.findByHotelIdAndRoomType(hotelId, room.getRoomType().trim()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
         room.setId(null);
         room.setHotelId(hotelId);
-        room.setRoomType(room.getRoomType().trim());
         if (room.getStatus() == null) room.setStatus("AVAILABLE");
         if (room.getIsActive() == null) room.setIsActive(true);
         Room saved = roomRepository.save(room);
@@ -78,18 +72,8 @@ public class RoomController {
         Optional<Room> existingOpt = roomRepository.findById(id);
         if (existingOpt.isEmpty()) return ResponseEntity.notFound().build();
 
-        String validationError = validateRoom(update, false);
-        if (validationError != null) return ResponseEntity.badRequest().build();
-
         Room existing = existingOpt.get();
-        if (update.getRoomType() != null) {
-            String newType = update.getRoomType().trim();
-            Optional<Room> duplicate = roomRepository.findByHotelIdAndRoomType(existing.getHotelId(), newType);
-            if (duplicate.isPresent() && !duplicate.get().getId().equals(id)) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).build();
-            }
-            existing.setRoomType(newType);
-        }
+        if (update.getRoomType() != null) existing.setRoomType(update.getRoomType());
         if (update.getPricePerNight() != null) existing.setPricePerNight(update.getPricePerNight());
         if (update.getCapacity() != null) existing.setCapacity(update.getCapacity());
         if (update.getTotalRooms() != null) existing.setTotalRooms(update.getTotalRooms());
@@ -118,12 +102,8 @@ public class RoomController {
         Optional<Room> existingOpt = roomRepository.findById(id);
         if (existingOpt.isEmpty()) return ResponseEntity.notFound().build();
 
-        String normalizedStatus = status == null ? "" : status.trim().toUpperCase();
-        if (!normalizedStatus.equals("AVAILABLE") && !normalizedStatus.equals("MAINTENANCE")) {
-            return ResponseEntity.badRequest().build();
-        }
         Room existing = existingOpt.get();
-        existing.setStatus(normalizedStatus);
+        existing.setStatus(status.toUpperCase());
         return ResponseEntity.ok(roomRepository.save(existing));
     }
 
@@ -137,26 +117,11 @@ public class RoomController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        Optional<Room> roomOpt = roomRepository.findById(id);
-        if (roomOpt.isEmpty()) return ResponseEntity.notFound().build();
-        Room room = roomOpt.get();
-        room.setIsActive(false); // Ngừng kinh doanh, không xóa dữ liệu lịch sử đặt phòng.
-        roomRepository.save(room);
+        if (!roomRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        roomRepository.deleteById(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private String validateRoom(Room room, boolean creating) {
-        if (creating && (room.getRoomType() == null || room.getRoomType().isBlank())) return "Tên hạng phòng không được để trống.";
-        if (room.getRoomType() != null && room.getRoomType().isBlank()) return "Tên hạng phòng không hợp lệ.";
-        if (room.getPricePerNight() != null && room.getPricePerNight() <= 0) return "Giá phòng phải lớn hơn 0.";
-        if (creating && (room.getPricePerNight() == null || room.getPricePerNight() <= 0)) return "Giá phòng phải lớn hơn 0.";
-        if (room.getCapacity() != null && room.getCapacity() <= 0) return "Sức chứa phải lớn hơn 0.";
-        if (creating && (room.getCapacity() == null || room.getCapacity() <= 0)) return "Sức chứa phải lớn hơn 0.";
-        if (room.getTotalRooms() != null && room.getTotalRooms() <= 0) return "Số lượng phòng phải lớn hơn 0.";
-        if (creating && (room.getTotalRooms() == null || room.getTotalRooms() <= 0)) return "Số lượng phòng phải lớn hơn 0.";
-        if (room.getAreaSqm() != null && room.getAreaSqm() <= 0) return "Diện tích phải lớn hơn 0.";
-        if (room.getStatus() != null && !room.getStatus().equalsIgnoreCase("AVAILABLE") && !room.getStatus().equalsIgnoreCase("MAINTENANCE")) return "Trạng thái phòng không hợp lệ.";
-        return null;
     }
 }
 

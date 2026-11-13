@@ -62,9 +62,6 @@ public class Booking {
     @Column(nullable = false, length = 30)
     private String status = BookingStatus.CONFIRMED;
 
-    @Column(name = "quantity", nullable = false)
-    private Integer quantity = 1; // Số lượng phòng khách đặt [FR-20]
-
     @Column(name = "adults")
     private Integer adults = 2;
 
@@ -166,9 +163,6 @@ public class Booking {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
     public Integer getAdults() { return adults; }
     public void setAdults(Integer adults) { this.adults = adults; }
