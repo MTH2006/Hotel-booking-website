@@ -47,7 +47,7 @@ router.get('/promotions/:id', async (req, res) => {
         if (!promo) {
             return res.status(404).json({ status: 'error', message: 'Không tìm thấy chương trình khuyến mãi' });
         }
-        res.json({ status: 'success', data: promo });
+res.json({ status: 'success', data: promo });
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
     }
@@ -81,8 +81,7 @@ router.post('/promotions/apply', async (req, res) => {
 
         // Tính toán số tiền giảm giá
         const discountAmount = (orderTotal * promo.discountPercent) / 100;
-
-        res.json({ 
+res.json({ 
             status: 'success', 
             message: 'Áp dụng mã khuyến mãi thành công!',
             data: {
