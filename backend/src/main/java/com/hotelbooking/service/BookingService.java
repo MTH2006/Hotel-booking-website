@@ -29,7 +29,6 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final BookingNotificationService notificationService;
     private final BookingChangeNotificationService changeNotificationService;
-    private final PromotionService promotionService;
     private final Random random = new Random();
 
     @Autowired
@@ -38,21 +37,12 @@ public class BookingService {
             HotelRepository hotelRepository,
             RoomRepository roomRepository,
             Optional<BookingNotificationService> notificationService,
-            Optional<BookingChangeNotificationService> changeNotificationService,
-            Optional<PromotionService> promotionService) {
+            Optional<BookingChangeNotificationService> changeNotificationService) {
         this.bookingRepository = bookingRepository;
         this.hotelRepository = hotelRepository;
         this.roomRepository = roomRepository;
         this.notificationService = notificationService.orElse(null);
         this.changeNotificationService = changeNotificationService.orElse(null);
-        this.promotionService = promotionService.orElse(null);
-    }
-
-    // Constructor giữ tương thích với các unit test / nơi khởi tạo service cũ.
-    public BookingService(BookingRepository bookingRepository, HotelRepository hotelRepository,
-            RoomRepository roomRepository, Optional<BookingNotificationService> notificationService,
-            Optional<BookingChangeNotificationService> changeNotificationService) {
-        this(bookingRepository, hotelRepository, roomRepository, notificationService, changeNotificationService, Optional.empty());
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -70,7 +60,10 @@ public class BookingService {
 
         // 2. Xác thực khách sạn tồn tại
         if (booking.getHotelId() != null) {
-            hotelRepository.findById(booking.getHotelId()).ifPresent(hotel -> booking.setHotelName(hotel.getName()));
+            Optional<Hotel> hotelOpt = hotelRepository.findById(booking.getHotelId());
+            if (hotelOpt.isPresent()) {
+                booking.setHotelName(hotelOpt.get().getName());
+            }
         }
 
         // 3. Xác thực phòng & sức chứa [FR-25]
@@ -82,26 +75,14 @@ public class BookingService {
             room = roomRepository.findByHotelIdAndRoomType(booking.getHotelId(), booking.getRoomType()).orElse(null);
         }
 
-        if (room == null) {
-            throw new IllegalArgumentException("Hạng phòng đã chọn không tồn tại.");
-        }
-        if (room.getHotelId() == null || !room.getHotelId().equals(booking.getHotelId())) {
-            throw new IllegalArgumentException("Hạng phòng không thuộc khách sạn đã chọn.");
-        }
-        if (!Boolean.TRUE.equals(room.getIsActive()) || !"AVAILABLE".equalsIgnoreCase(room.getStatus())) {
-            throw new IllegalStateException("Hạng phòng hiện không nhận đặt phòng.");
-        }
-        booking.setRoom(room);
-        if (booking.getRoomType() == null) booking.setRoomType(room.getRoomType());
-        int quantity = booking.getQuantity() == null ? 1 : booking.getQuantity();
-        if (quantity <= 0) throw new IllegalArgumentException("Số lượng phòng phải lớn hơn 0.");
-        booking.setQuantity(quantity);
-        int adults = booking.getAdults() == null ? 2 : booking.getAdults();
-        int children = booking.getChildren() == null ? 0 : booking.getChildren();
-        if (adults <= 0 || children < 0) throw new IllegalArgumentException("Số lượng người lớn/trẻ em không hợp lệ.");
-        int guestsCount = adults + children;
-        if (room.getCapacity() != null && guestsCount > room.getCapacity() * quantity) {
-            throw new IllegalArgumentException("Số lượng khách vượt quá sức chứa của số phòng đã chọn.");
+        if (room != null) {
+            booking.setRoom(room);
+            int guestsCount = (booking.getAdults() != null ? booking.getAdults() : 2) +
+                    (booking.getChildren() != null ? booking.getChildren() : 0);
+            if (room.getCapacity() != null && guestsCount > room.getCapacity()) {
+                throw new IllegalArgumentException("Số lượng khách (" + guestsCount
+                        + ") vượt quá sức chứa tối đa của phòng (" + room.getCapacity() + " người).");
+            }
         }
 
         // 4. Kiểm tra phòng khả dụng & chống overbooking [FR-26]
@@ -119,11 +100,10 @@ public class BookingService {
                     booking.getCheckOut());
         }
 
-        if (overlappingCount + quantity > maxAvailableRooms) {
+        if (overlappingCount >= maxAvailableRooms) {
             throw new IllegalStateException(
-                    "Hạng phòng '" + booking.getRoomType()
-                            + "' không đủ số lượng phòng trong khoảng thời gian đã chọn. Còn tối đa "
-                            + Math.max(0, maxAvailableRooms - overlappingCount) + " phòng.");
+                    "Hạng phòng '" + (booking.getRoomType() != null ? booking.getRoomType() : "đã chọn")
+                            + "' đã hết phòng trong khoảng thời gian đã chọn!");
         }
 
         // 5. Tính toán tổng chi phí [FR-27]
@@ -131,25 +111,14 @@ public class BookingService {
         if (nights <= 0)
             nights = 1;
 
-        long pricePerNight = room.getPricePerNight();
-        long baseAmount = Math.multiplyExact(Math.multiplyExact(pricePerNight, nights), quantity);
-        long discountAmount = 0L;
-        String promotionCode = booking.getPromotionCode();
-        if (promotionCode != null && !promotionCode.isBlank()) {
-            if (promotionService == null) {
-                throw new IllegalStateException("Chức năng khuyến mãi hiện chưa khả dụng.");
+        if (booking.getTotalPrice() == null || booking.getTotalPrice() <= 0) {
+            long pricePerNight = (room != null && room.getPricePerNight() != null) ? room.getPricePerNight() : 1500000L;
+            long calculatedPrice = pricePerNight * nights;
+            if (booking.getDiscountAmount() != null && booking.getDiscountAmount() > 0) {
+                calculatedPrice = Math.max(0, calculatedPrice - booking.getDiscountAmount());
             }
-            java.util.Map<String, Object> promotionResult = promotionService.applyPromotion(promotionCode, baseAmount);
-            if (!Boolean.TRUE.equals(promotionResult.get("valid"))) {
-                throw new IllegalArgumentException(String.valueOf(promotionResult.get("message")));
-            }
-            discountAmount = ((Number) promotionResult.get("discountAmount")).longValue();
-            booking.setPromotionCode(String.valueOf(promotionResult.get("code")));
-        } else {
-            booking.setPromotionCode(null);
+            booking.setTotalPrice(calculatedPrice);
         }
-        booking.setDiscountAmount(discountAmount);
-        booking.setTotalPrice(Math.max(0L, baseAmount - discountAmount));
 
         // 6. Sinh mã đặt phòng duy nhất [FR-29]
         if (booking.getBookingId() == null || booking.getBookingId().isBlank()) {
@@ -166,9 +135,6 @@ public class BookingService {
 
         // 7. Lưu vào PostgreSQL
         Booking saved = bookingRepository.save(booking);
-        if (promotionCode != null && !promotionCode.isBlank() && promotionService != null) {
-            promotionService.incrementUsedCount(promotionCode);
-        }
         log.info("Booking created successfully: ID={}, Code={}", saved.getId(), saved.getBookingId());
 
         // 8. Kích hoạt thông báo xác nhận [FR-91]

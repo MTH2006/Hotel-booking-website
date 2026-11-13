@@ -24,9 +24,3 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hidden_from_user BOOLEAN;
 ALTER TABLE bookings ALTER COLUMN hidden_from_user SET DEFAULT FALSE;
 UPDATE bookings SET hidden_from_user = FALSE WHERE hidden_from_user IS NULL;
 ALTER TABLE bookings ALTER COLUMN hidden_from_user SET NOT NULL;
-
--- Store requested room quantity so availability checks count rooms, not booking records.
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quantity INTEGER;
-UPDATE bookings SET quantity = 1 WHERE quantity IS NULL OR quantity < 1;
-ALTER TABLE bookings ALTER COLUMN quantity SET DEFAULT 1;
-ALTER TABLE bookings ALTER COLUMN quantity SET NOT NULL;

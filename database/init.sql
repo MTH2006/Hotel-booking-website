@@ -113,7 +113,6 @@ CREATE TABLE bookings (
     check_in DATE NOT NULL,
     check_out DATE NOT NULL,
     room_type VARCHAR(100) NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
     total_price BIGINT NOT NULL CHECK (total_price >= 0),
     status VARCHAR(30) DEFAULT 'CONFIRMED' CHECK (status IN ('CONFIRMED', 'CANCELLED', 'CHECKED_IN', 'COMPLETED', 'PENDING')),
     adults INTEGER DEFAULT 2,
