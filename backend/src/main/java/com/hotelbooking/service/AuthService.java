@@ -82,16 +82,18 @@ public class AuthService {
                 || request.getEmail() == null
                 || request.getPassword() == null
                 || request.getPassword().length() < 6) {
-            return denied();
+            return denied("Vui lòng nhập email hợp lệ và mật khẩu ít nhất 6 ký tự.");
         }
 
         String email = request.getEmail()
                 .trim()
                 .toLowerCase(Locale.ROOT);
 
-        if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
-                || userRepository.existsByEmail(email)) {
-            return denied();
+        if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            return denied("Địa chỉ email chưa đúng định dạng.");
+        }
+        if (userRepository.existsByEmail(email)) {
+            return denied("Email này đã có tài khoản. Hãy chuyển sang tab Đăng nhập.");
         }
 
         String name = request.getName();
@@ -183,5 +185,9 @@ public class AuthService {
 
     private AuthResponse denied() {
         return new AuthResponse(false, null, null);
+    }
+
+    private AuthResponse denied(String message) {
+        return new AuthResponse(false, null, null, message);
     }
 }

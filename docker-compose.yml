@@ -50,7 +50,28 @@ services:
       - hotel-network
 
   # ============================================================================
-  # 3. Spring Boot Backend API Service
+  # 3. Apply safe, repeatable updates to existing database volumes
+  # ============================================================================
+  schema-migrate:
+    image: postgres:16-alpine
+    container_name: hotel-booking-schema-migrate
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-hotel_secure_password_2025}
+    volumes:
+      - ./database/migrations/schema_updates.sql:/migrations/schema_updates.sql:ro
+    command:
+      - sh
+      - -c
+      - psql -v ON_ERROR_STOP=1 -h postgres -U ${POSTGRES_USER:-hotel_user} -d ${POSTGRES_DB:-hotel_booking_db} -f /migrations/schema_updates.sql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # 4. Spring Boot Backend API Service
   # ============================================================================
   backend:
     build:
@@ -63,16 +84,17 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-hotel_user}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-hotel_secure_password_2025}
       SERVER_PORT: 8080
+      APP_AUTH_SECRET: ${APP_AUTH_SECRET:-hestora-local-dev-auth-secret-change-before-deploy-2026}
     ports:
       - "8080:8080"
     depends_on:
-      postgres:
-        condition: service_healthy
+      schema-migrate:
+        condition: service_completed_successfully
     networks:
       - hotel-network
 
   # ============================================================================
-  # 4. Frontend Web Service
+  # 5. Frontend Web Service
   # ============================================================================
   frontend:
     build:

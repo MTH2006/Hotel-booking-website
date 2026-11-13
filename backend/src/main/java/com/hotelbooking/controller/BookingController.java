@@ -78,6 +78,24 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingsByUserId(userOpt.get().getId()));
     }
 
+    @DeleteMapping("/{bookingId}/my")
+    public ResponseEntity<Map<String, Object>> hideMyCancelledBooking(
+            @PathVariable String bookingId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Optional<User> userOpt = accessControl.authenticate(authorization);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("success", false, "message", "Vui lòng đăng nhập lại."));
+        }
+
+        boolean hidden = bookingService.hideCancelledBookingForUser(bookingId, userOpt.get().getId());
+        if (!hidden) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("success", false, "message", "Chỉ có thể xóa đơn đã hủy thuộc tài khoản của bạn."));
+        }
+        return ResponseEntity.ok(Map.of("success", true, "message", "Đã xóa đơn khỏi lịch sử tài khoản."));
+    }
+
     // FR-71: Xem tất cả đơn (Admin / Staff)
     @GetMapping
     public ResponseEntity<List<Booking>> getAllBookings(@RequestHeader(value = "Authorization", required = false) String authorization) {

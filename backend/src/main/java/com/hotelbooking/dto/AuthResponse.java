@@ -4,13 +4,19 @@ public class AuthResponse {
     private boolean success;
     private String token;
     private UserDto user;
+    private String message;
 
     public AuthResponse() {}
 
     public AuthResponse(boolean success, String token, UserDto user) {
+        this(success, token, user, null);
+    }
+
+    public AuthResponse(boolean success, String token, UserDto user, String message) {
         this.success = success;
         this.token = token;
         this.user = user;
+        this.message = message;
     }
 
     public boolean isSuccess() { return success; }
@@ -21,6 +27,9 @@ public class AuthResponse {
 
     public UserDto getUser() { return user; }
     public void setUser(UserDto user) { this.user = user; }
+
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
 
     public static class UserDto {
         private String id;
