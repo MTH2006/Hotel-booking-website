@@ -24,14 +24,37 @@ public class AccessControlService {
     public boolean isAdmin(User user) {
         return user != null
                 && user.isActive()
-                && "ADMIN".equals(user.getRole());
+                && "ADMIN".equalsIgnoreCase(user.getRole());
+    }
+
+    // Kiem tra quyen STAFF
+    public boolean isStaff(User user) {
+        return user != null
+                && user.isActive()
+                && "STAFF".equalsIgnoreCase(user.getRole());
+    }
+
+    // Kiem tra quyen CUSTOMER (hoac USER tuong thich cu)
+    public boolean isCustomer(User user) {
+        return user != null
+                && user.isActive()
+                && ("CUSTOMER".equalsIgnoreCase(user.getRole()) || "USER".equalsIgnoreCase(user.getRole()));
+    }
+
+    // Kiem tra quyen STAFF hoac ADMIN
+    public boolean isStaffOrAdmin(User user) {
+        return user != null
+                && user.isActive()
+                && ("ADMIN".equalsIgnoreCase(user.getRole())
+                    || "STAFF".equalsIgnoreCase(user.getRole())
+                    || "MANAGER".equalsIgnoreCase(user.getRole()));
     }
 
     // Kiem tra quyen MANAGER hoac ADMIN
     public boolean isManagerOrAdmin(User user) {
         return user != null
                 && user.isActive()
-                && ("MANAGER".equals(user.getRole())
-                    || "ADMIN".equals(user.getRole()));
+                && ("MANAGER".equalsIgnoreCase(user.getRole())
+                    || "ADMIN".equalsIgnoreCase(user.getRole()));
     }
 }

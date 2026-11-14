@@ -167,6 +167,8 @@
         if (result.success && result.user) {
           result.user.token = result.token;
           localStorage.setItem('hotel_user', JSON.stringify(result.user));
+          localStorage.setItem('token', result.token);
+          localStorage.setItem('user', JSON.stringify(result.user));
         }
         return result;
       } catch (err) {
@@ -494,15 +496,27 @@
     // Custom nav item hooks
     document.getElementById('navPromotions')?.addEventListener('click', () => openPromotionsModal());
     document.getElementById('navMyBookings')?.addEventListener('click', () => openMyBookingsModal());
-    document.getElementById('navSupport')?.addEventListener('click', () => openSupportModal());
+    document.getElementById('navSupport')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openSupportModal();
+    });
+    document.getElementById('featureSupportItem')?.addEventListener('click', () => openSupportModal());
   }
 
   function updateUserUI() {
     const loginBtn = document.getElementById('btnNavLogin');
     const registerBtn = document.getElementById('btnNavRegister');
     const adminLink = document.getElementById('navAdmin');
+    const staffLink = document.getElementById('navStaff');
 
     if (state.currentUser && loginBtn && registerBtn) {
+      const role = String(state.currentUser.role || '').toUpperCase();
+      const isAdmin = role === 'ADMIN';
+      const isStaff = role === 'STAFF';
+
+      if (adminLink) adminLink.style.display = isAdmin ? 'inline-block' : 'none';
+      if (staffLink) staffLink.style.display = isStaff ? 'inline-block' : 'none';
+
       const name = String(state.currentUser.name || state.currentUser.email || 'Tài khoản');
       const safeName = escapeHtml(name);
       const safeEmail = escapeHtml(state.currentUser.email || '');
@@ -523,8 +537,15 @@
         const menu = document.createElement('div');
         menu.id = 'accountMenu';
         menu.className = 'account-menu';
-        const isAdminOrStaff = ['ADMIN', 'STAFF'].includes(String(state.currentUser.role || '').toUpperCase());
-        menu.innerHTML = `<div class="account-menu-heading"><strong>${safeName}</strong><span>${safeEmail}</span></div><button type="button" data-action="bookings">Đơn đặt phòng của tôi</button><button type="button" data-action="password">Đổi mật khẩu</button>${isAdminOrStaff ? '<button type="button" data-action="admin">Quản trị khách sạn</button>' : ''}<button type="button" class="account-logout" data-action="logout">Đăng xuất</button>`;
+        
+        let roleButtons = '';
+        if (isAdmin) {
+          roleButtons = '<button type="button" data-action="admin">Trang Quản trị Hệ thống</button>';
+        } else if (isStaff) {
+          roleButtons = '<button type="button" data-action="staff">Bàn làm việc Lễ tân</button>';
+        }
+
+        menu.innerHTML = `<div class="account-menu-heading"><strong>${safeName}</strong><span>${safeEmail} <span style="font-size:10px; color:var(--accent-primary); font-weight:700;">[${role}]</span></span></div><button type="button" data-action="bookings">Đơn đặt phòng của tôi</button><button type="button" data-action="password">Đổi mật khẩu</button>${roleButtons}<button type="button" class="account-logout" data-action="logout">Đăng xuất</button>`;
         loginBtn.parentElement?.appendChild(menu);
         loginBtn.setAttribute('aria-expanded', 'true');
         menu.addEventListener('click', (e) => {
@@ -533,9 +554,12 @@
           loginBtn.setAttribute('aria-expanded', 'false');
           if (action === 'bookings') openMyBookingsModal();
           if (action === 'password') openPasswordModal();
-          if (action === 'admin') window.location.href = 'hotel-management.html';
+          if (action === 'admin') window.location.href = '/admin/dashboard';
+          if (action === 'staff') window.location.href = '/staff/dashboard';
           if (action === 'logout') {
             localStorage.removeItem('hotel_user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
             state.currentUser = null;
             updateUserUI();
             showToast('Đã đăng xuất thành công', 'info');
@@ -551,7 +575,6 @@
         setTimeout(() => document.addEventListener('click', dismiss), 0);
       };
       registerBtn.style.display = 'none';
-      if (adminLink) adminLink.style.display = ['ADMIN', 'STAFF'].includes(String(state.currentUser.role || '').toUpperCase()) ? '' : 'none';
     } else if (loginBtn && registerBtn) {
       loginBtn.classList.remove('account-trigger');
       loginBtn.textContent = 'Đăng nhập';
@@ -559,6 +582,7 @@
       registerBtn.style.display = 'inline-flex';
       registerBtn.onclick = () => openAuthModal('register');
       if (adminLink) adminLink.style.display = 'none';
+      if (staffLink) staffLink.style.display = 'none';
     }
   }
 
@@ -1328,15 +1352,12 @@
   }
 
   function openSupportModal() {
-    const modal = document.getElementById('supportModal');
-    if (!modal) return;
-    if (state.currentUser) {
-      const elName = document.getElementById('supName');
-      const elEmail = document.getElementById('supEmail');
-      if (elName) elName.value = state.currentUser.name || '';
-      if (elEmail) elEmail.value = state.currentUser.email || '';
+    // Mở trực tiếp AI Chatbot nguyên bản đã lập trình sẵn
+    if (typeof window.openHestoraAIChatbot === 'function') {
+      window.openHestoraAIChatbot();
+    } else {
+      window.dispatchEvent(new CustomEvent('open-hestora-ai'));
     }
-    modal.classList.add('active');
   }
 
   /* ==========================================================================
@@ -1436,6 +1457,16 @@
         updateUserUI();
         modal?.classList.remove('active');
         showToast(`Đăng nhập thành công! Chào mừng ${res.user.name}`);
+        
+        const role = String(res.user.role || '').toUpperCase();
+        if (role === 'ADMIN') {
+          setTimeout(() => { window.location.href = '/admin/dashboard'; }, 400);
+          return;
+        } else if (role === 'STAFF') {
+          setTimeout(() => { window.location.href = '/staff/dashboard'; }, 400);
+          return;
+        }
+
         if (document.getElementById('myBookingsModal')?.classList.contains('active')) renderMyBookingsList();
       } else showToast(res.message || 'Email hoặc mật khẩu không đúng.', 'error');
     });

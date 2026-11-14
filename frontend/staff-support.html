@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cổng Nhân Viên – Hỗ Trợ Khách Hàng | HESTORA</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/ai-chatbot.css">
+  <style>
+    body { background: var(--bg-main, #141210); color: var(--text-primary, #fff); font-family: var(--font-sans, sans-serif); margin: 0; padding: 0; }
+    .staff-header { background: var(--bg-surface, #1b1815); border-bottom: 1px solid var(--border-subtle, #2f2a25); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .staff-logo { font-family: var(--font-serif, serif); font-size: 20px; font-weight: 700; color: var(--accent-primary, #a27b5c); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+    .staff-badge { background: #3b82f6; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .staff-user-bar { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--text-secondary, #b5aea4); }
+    .staff-user-bar button { background: transparent; border: 1px solid var(--border-light, #443c35); color: var(--text-primary, #fff); padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+    .staff-user-bar button:hover { border-color: var(--accent-primary, #a27b5c); }
+    
+    .staff-container { max-width: 1400px; margin: 24px auto; padding: 0 24px; }
+    .staff-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--bg-card, #231f1c); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 12px; padding: 18px 20px; }
+    .stat-card .label { font-size: 13px; color: var(--text-muted, #7e776f); }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: var(--accent-light, #b88e68); margin-top: 6px; }
+    
+    .staff-main-layout { display: grid; grid-template-columns: 380px 1fr; gap: 24px; }
+    @media (max-width: 900px) { .staff-main-layout { grid-template-columns: 1fr; } }
+    
+    /* Left Panel: Ticket List */
+    .tickets-panel { background: var(--bg-surface, #1b1815); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; height: calc(100vh - 280px); }
+    .tickets-filter { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-btn { background: var(--bg-card, #231f1c); border: 1px solid var(--border-subtle, #2f2a25); color: var(--text-secondary, #b5aea4); font-size: 12px; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
+    .filter-btn.active { background: var(--accent-primary, #a27b5c); color: #fff; border-color: var(--accent-primary, #a27b5c); }
+    .tickets-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+    
+    .ticket-card { background: var(--bg-card, #231f1c); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.2s; }
+    .ticket-card:hover { border-color: var(--accent-primary, #a27b5c); background: var(--bg-card-hover, #2b2622); }
+    .ticket-card.selected { border-color: var(--accent-light, #b88e68); background: #2c2520; }
+    .ticket-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .ticket-id { font-weight: 700; font-size: 14px; color: var(--accent-light, #b88e68); }
+    .ticket-status { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; }
+    .status-pending { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.3); }
+    .status-in_progress { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .status-resolved { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .ticket-customer { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .ticket-summary { font-size: 12px; color: var(--text-muted, #7e776f); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    
+    /* Right Panel: Detail & Conversation */
+    .detail-panel { background: var(--bg-surface, #1b1815); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; height: calc(100vh - 280px); }
+    .detail-header { border-bottom: 1px solid var(--border-subtle, #2f2a25); padding-bottom: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .detail-title { font-size: 18px; font-weight: 700; color: var(--text-primary, #fff); }
+    .detail-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-claim { background: var(--accent-primary, #a27b5c); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-claim:hover { background: var(--accent-light, #b88e68); }
+    .btn-resolve { background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-resolve:hover { background: #22c55e; }
+    
+    .chat-transcript-box { flex: 1; overflow-y: auto; background: var(--bg-card, #231f1c); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .transcript-bubble { max-width: 80%; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+    .transcript-bubble.user { align-self: flex-start; background: #2a2622; color: #fff; border: 1px solid var(--border-subtle, #2f2a25); }
+    .transcript-bubble.ai { align-self: flex-end; background: #383028; color: #f5eedc; border: 1px solid rgba(162, 123, 92, 0.4); }
+    .transcript-bubble.staff { align-self: flex-end; background: #1e3a5f; color: #dbeafe; border: 1px solid #3b82f6; }
+    .transcript-sender { font-size: 11px; font-weight: 700; margin-bottom: 4px; opacity: 0.8; }
+    
+    .reply-form { display: flex; gap: 12px; align-items: flex-end; }
+    .reply-form textarea { flex: 1; background: var(--bg-card, #231f1c); border: 1px solid var(--border-light, #443c35); color: #fff; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 13px; min-height: 60px; resize: none; }
+    .reply-form textarea:focus { border-color: var(--accent-primary, #a27b5c); outline: none; }
+    .reply-form button { background: var(--accent-primary, #a27b5c); color: #fff; border: none; padding: 0 20px; height: 60px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .reply-form button:hover { background: var(--accent-light, #b88e68); }
+    
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted, #7e776f); font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <header class="staff-header">
+    <a href="/index.html" class="staff-logo">
+      HESTORA <span class="staff-badge">Cổng Nhân Viên (STAFF)</span>
+    </a>
+    <div class="staff-user-bar">
+      <span id="staffNameDisplay">Đang tải...</span>
+      <button onclick="window.location.href='/index.html'">Về trang chủ</button>
+      <button onclick="logoutStaff()">Đăng xuất</button>
+    </div>
+  </header>
+
+  <div class="staff-container">
+    <!-- Stat Cards -->
+    <div class="staff-stats-row">
+      <div class="stat-card">
+        <div class="label">Phiếu Chờ Tiếp Nhận</div>
+        <div class="value" id="statPendingCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Phiếu Đang Xử Lý</div>
+        <div class="value" id="statInProgressCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Phiếu Đã Hoàn Thành</div>
+        <div class="value" id="statResolvedCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Phân Công Cho Tôi</div>
+        <div class="value" id="statMyAssignedCount">0</div>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="staff-main-layout">
+      <!-- Left: Ticket List -->
+      <div class="tickets-panel">
+        <div class="tickets-filter">
+          <button class="filter-btn active" onclick="setFilter('ALL')">Tất cả</button>
+          <button class="filter-btn" onclick="setFilter('PENDING')">Chờ xử lý</button>
+          <button class="filter-btn" onclick="setFilter('IN_PROGRESS')">Đang xử lý</button>
+          <button class="filter-btn" onclick="setFilter('RESOLVED')">Đã xong</button>
+          <button class="filter-btn" onclick="setFilter('MY')">Của tôi</button>
+        </div>
+        <div class="tickets-list" id="ticketsListContainer">
+          <div class="empty-state">Đang tải danh sách phiếu hỗ trợ...</div>
+        </div>
+      </div>
+
+      <!-- Right: Ticket Detail & Conversation View -->
+      <div class="detail-panel" id="ticketDetailPanel">
+        <div class="empty-state" id="detailEmptyState">
+          👉 Vui lòng chọn một phiếu hỗ trợ từ danh sách bên trái để tiếp nhận và giải đáp khách hàng.
+        </div>
+        <div id="detailActiveContent" style="display: none; height: 100%; flex-direction: column;">
+          <div class="detail-header">
+            <div>
+              <div class="detail-title" id="activeTicketTitle">Phiếu #---</div>
+              <div style="font-size: 13px; color: var(--text-secondary, #b5aea4); margin-top: 4px;" id="activeCustomerInfo">Khách hàng: ---</div>
+            </div>
+            <div class="detail-actions">
+              <button class="btn-claim" id="btnClaimTicket" onclick="claimActiveTicket()">⚡ Tiếp nhận phiếu</button>
+              <button class="btn-resolve" id="btnResolveTicket" onclick="resolveActiveTicket()">✓ Đã giải quyết</button>
+            </div>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-muted, #7e776f); margin-bottom: 8px;">
+            💬 Lịch sử trao đổi giữa khách hàng và AI:
+          </div>
+          <div class="chat-transcript-box" id="chatTranscriptBox">
+            <!-- Bubbles loaded here -->
+          </div>
+
+          <div class="reply-form">
+            <textarea id="staffReplyInput" placeholder="Nhập câu trả lời hoặc hướng dẫn của nhân viên cho khách hàng..."></textarea>
+            <button onclick="sendStaffReply()">Gửi phản hồi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `${window.location.protocol}//${window.location.hostname}:8080/api`
+      : '/api';
+    let currentStaff = null;
+    let allTickets = [];
+    let activeTicket = null;
+    let currentFilter = 'ALL';
+
+    function getAuthToken() {
+      return localStorage.getItem('token') || (JSON.parse(localStorage.getItem('hotel_user') || '{}').token);
+    }
+
+    async function initStaffPortal() {
+      const token = getAuthToken();
+      if (!token) {
+        alert('Vui lòng đăng nhập với tài khoản nhân viên (STAFF) hoặc quản trị (ADMIN).');
+        window.location.href = '/index.html';
+        return;
+      }
+
+      try {
+        const meRes = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!meRes.ok) throw new Error('Unauthorized');
+        currentStaff = await meRes.json();
+
+        const role = (currentStaff.role || '').toUpperCase();
+        if (role !== 'STAFF' && role !== 'ADMIN' && role !== 'MANAGER') {
+          alert('Quyền truy cập bị từ chối: Trang này chỉ dành cho nhân viên khách sạn (STAFF).');
+          window.location.href = '/index.html';
+          return;
+        }
+
+        document.getElementById('staffNameDisplay').innerText = `👤 ${currentStaff.name || currentStaff.email} (${role})`;
+        loadStaffTickets();
+      } catch (err) {
+        console.error(err);
+        alert('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+        window.location.href = '/index.html';
+      }
+    }
+
+    async function loadStaffTickets() {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/staff/handoffs`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Không thể tải phiếu hỗ trợ');
+        allTickets = await res.json();
+        updateStats();
+        renderTicketsList();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('ticketsListContainer').innerHTML = `<div class="empty-state">Lỗi tải dữ liệu: ${err.message}</div>`;
+      }
+    }
+
+    function updateStats() {
+      const pending = allTickets.filter(t => t.status === 'PENDING').length;
+      const inProg = allTickets.filter(t => t.status === 'IN_PROGRESS').length;
+      const resolved = allTickets.filter(t => t.status === 'RESOLVED').length;
+      const myTickets = allTickets.filter(t => currentStaff && t.assignedStaffId === currentStaff.id).length;
+
+      document.getElementById('statPendingCount').innerText = pending;
+      document.getElementById('statInProgressCount').innerText = inProg;
+      document.getElementById('statResolvedCount').innerText = resolved;
+      document.getElementById('statMyAssignedCount').innerText = myTickets;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderTicketsList();
+    }
+
+    function renderTicketsList() {
+      const container = document.getElementById('ticketsListContainer');
+      let filtered = allTickets;
+
+      if (currentFilter === 'PENDING') filtered = allTickets.filter(t => t.status === 'PENDING');
+      else if (currentFilter === 'IN_PROGRESS') filtered = allTickets.filter(t => t.status === 'IN_PROGRESS');
+      else if (currentFilter === 'RESOLVED') filtered = allTickets.filter(t => t.status === 'RESOLVED');
+      else if (currentFilter === 'MY') filtered = allTickets.filter(t => currentStaff && t.assignedStaffId === currentStaff.id);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state">Không có phiếu hỗ trợ nào trong mục này.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(t => {
+        const isSelected = activeTicket && activeTicket.id === t.id;
+        const statusClass = `status-${(t.status || 'pending').toLowerCase()}`;
+        return `
+          <div class="ticket-card ${isSelected ? 'selected' : ''}" onclick="selectTicket(${t.id})">
+            <div class="ticket-card-header">
+              <span class="ticket-id">#${t.id} - ${escapeHtml(t.customerName || 'Khách vãng lai')}</span>
+              <span class="ticket-status ${statusClass}">${escapeHtml(t.status || 'PENDING')}</span>
+            </div>
+            <div class="ticket-customer">📞 ${escapeHtml(t.customerPhone || 'N/A')} | ✉️ ${escapeHtml(t.customerEmail || 'N/A')}</div>
+            <div class="ticket-summary">${escapeHtml(t.questionSummary || 'Yêu cầu hỗ trợ')}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function selectTicket(id) {
+      activeTicket = allTickets.find(t => t.id === id);
+      if (!activeTicket) return;
+
+      renderTicketsList();
+
+      document.getElementById('detailEmptyState').style.display = 'none';
+      const detailBox = document.getElementById('detailActiveContent');
+      detailBox.style.display = 'flex';
+
+      document.getElementById('activeTicketTitle').innerText = `Phiếu hỗ trợ #${activeTicket.id}: ${activeTicket.questionSummary || ''}`;
+      document.getElementById('activeCustomerInfo').innerText = `Khách hàng: ${activeTicket.customerName || 'N/A'} - SĐT: ${activeTicket.customerPhone || 'N/A'} - Email: ${activeTicket.customerEmail || 'N/A'} | Trạng thái: ${activeTicket.status}`;
+
+      // Update button visibility
+      const isAssignedToMe = currentStaff && activeTicket.assignedStaffId === currentStaff.id;
+      const btnClaim = document.getElementById('btnClaimTicket');
+      const btnResolve = document.getElementById('btnResolveTicket');
+
+      if (activeTicket.status === 'RESOLVED') {
+        btnClaim.style.display = 'none';
+        btnResolve.style.display = 'none';
+      } else if (activeTicket.status === 'IN_PROGRESS' && isAssignedToMe) {
+        btnClaim.style.display = 'none';
+        btnResolve.style.display = 'inline-block';
+      } else {
+        btnClaim.style.display = 'inline-block';
+        btnResolve.style.display = 'inline-block';
+      }
+
+      // Load conversation transcript
+      loadTicketMessages(activeTicket);
+    }
+
+    async function loadTicketMessages(ticket) {
+      const chatBox = document.getElementById('chatTranscriptBox');
+      chatBox.innerHTML = '<div style="color: #7e776f; font-size: 13px;">Đang tải lịch sử hội thoại...</div>';
+
+      const token = getAuthToken();
+      try {
+        let messages = [];
+        if (ticket.conversationId) {
+          const res = await fetch(`${API_BASE}/ai/staff/conversations/${ticket.conversationId}/messages`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) messages = await res.json();
+        }
+
+        if (messages.length === 0) {
+          chatBox.innerHTML = `
+            <div class="transcript-bubble user">
+              <div class="transcript-sender">👤 ${escapeHtml(ticket.customerName || 'Khách hàng')}</div>
+              ${escapeHtml(ticket.questionSummary || 'Yêu cầu hỗ trợ từ khách hàng.')}
+            </div>
+            ${ticket.staffReply ? `
+            <div class="transcript-bubble staff">
+              <div class="transcript-sender">👨‍💼 Nhân viên phản hồi</div>
+              ${escapeHtml(ticket.staffReply)}
+            </div>` : ''}
+          `;
+          return;
+        }
+
+        chatBox.innerHTML = messages.map(m => {
+          const isUser = m.senderType === 'USER';
+          const isStaff = m.senderType === 'STAFF';
+          const bubbleClass = isUser ? 'user' : (isStaff ? 'staff' : 'ai');
+          const senderLabel = isUser ? `👤 ${ticket.customerName || 'Khách'}` : (isStaff ? '👨‍💼 Nhân viên' : '🤖 Trợ lý AI HESTORA');
+          return `
+            <div class="transcript-bubble ${bubbleClass}">
+              <div class="transcript-sender">${senderLabel}</div>
+              <div>${escapeHtml(m.content)}</div>
+            </div>
+          `;
+        }).join('');
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        chatBox.innerHTML = `<div style="color:#ef4444; font-size:13px;">Không thể tải lịch sử: ${err.message}</div>`;
+      }
+    }
+
+    async function claimActiveTicket() {
+      if (!activeTicket) return;
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/staff/handoffs/${activeTicket.id}/claim`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Tiếp nhận phiếu thành công!');
+          await loadStaffTickets();
+          selectTicket(activeTicket.id);
+        } else {
+          alert(data.message || 'Lỗi tiếp nhận');
+        }
+      } catch (err) {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+
+    async function resolveActiveTicket() {
+      if (!activeTicket) return;
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/staff/handoffs/${activeTicket.id}/status`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'RESOLVED', note: 'Nhân viên đã giải quyết xong phiếu.' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Đã cập nhật phiếu sang trạng thái HOÀN THÀNH!');
+          await loadStaffTickets();
+          selectTicket(activeTicket.id);
+        } else {
+          alert(data.message || 'Lỗi cập nhật');
+        }
+      } catch (err) {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+
+    async function sendStaffReply() {
+      if (!activeTicket) return;
+      const input = document.getElementById('staffReplyInput');
+      const text = input.value.trim();
+      if (!text) {
+        alert('Vui lòng nhập nội dung phản hồi.');
+        return;
+      }
+
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/staff/handoffs/${activeTicket.id}/reply`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reply: text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          input.value = '';
+          alert('Đã gửi phản hồi thành công!');
+          await loadStaffTickets();
+          selectTicket(activeTicket.id);
+        } else {
+          alert(data.message || 'Lỗi gửi phản hồi');
+        }
+      } catch (err) {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+
+    function logoutStaff() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/index.html';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', initStaffPortal);
+  </script>
+</body>
+</html>
+

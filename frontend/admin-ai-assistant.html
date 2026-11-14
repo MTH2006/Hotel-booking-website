@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản Trị AI Assistant & Tri Thức | HESTORA Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/ai-chatbot.css">
+  <style>
+    body { background: var(--bg-main, #141210); color: var(--text-primary, #fff); font-family: var(--font-sans, sans-serif); margin: 0; padding: 0; }
+    .admin-header { background: var(--bg-surface, #1b1815); border-bottom: 1px solid var(--border-subtle, #2f2a25); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .admin-logo { font-family: var(--font-serif, serif); font-size: 20px; font-weight: 700; color: var(--accent-primary, #a27b5c); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+    .admin-badge { background: #dc2626; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .admin-nav-links { display: flex; gap: 16px; align-items: center; }
+    .admin-nav-links a, .admin-nav-links button { background: transparent; border: 1px solid var(--border-light, #443c35); color: var(--text-secondary, #b5aea4); padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
+    .admin-nav-links a:hover, .admin-nav-links button:hover { border-color: var(--accent-primary, #a27b5c); color: #fff; }
+    
+    .admin-layout { max-width: 1440px; margin: 28px auto; padding: 0 24px; display: flex; flex-direction: column; gap: 28px; }
+    
+    /* Stats & Health Grid */
+    .health-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+    .admin-stat-card { background: var(--bg-card, #231f1c); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 12px; padding: 18px 20px; position: relative; }
+    .admin-stat-card .title { font-size: 12px; color: var(--text-muted, #7e776f); text-transform: uppercase; letter-spacing: 0.5px; }
+    .admin-stat-card .val { font-size: 26px; font-weight: 700; color: var(--accent-light, #b88e68); margin-top: 6px; }
+    .health-pill { position: absolute; top: 18px; right: 20px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+    
+    /* Tabs Navigation */
+    .admin-tabs { display: flex; gap: 10px; border-bottom: 1px solid var(--border-subtle, #2f2a25); padding-bottom: 12px; }
+    .tab-btn { background: var(--bg-surface, #1b1815); border: 1px solid var(--border-subtle, #2f2a25); color: var(--text-secondary, #b5aea4); font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .tab-btn.active { background: var(--accent-primary, #a27b5c); color: #fff; border-color: var(--accent-primary, #a27b5c); }
+    
+    /* Section Panels */
+    .section-panel { background: var(--bg-surface, #1b1815); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 12px; padding: 24px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .section-title { font-size: 18px; font-weight: 700; color: var(--text-primary, #fff); }
+    .section-actions { display: flex; gap: 12px; }
+    .btn-action-primary { background: var(--accent-primary, #a27b5c); color: white; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-action-primary:hover { background: var(--accent-light, #b88e68); }
+    .btn-action-outline { background: transparent; border: 1px solid var(--accent-primary, #a27b5c); color: var(--accent-primary, #a27b5c); padding: 8px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-action-outline:hover { background: var(--accent-glow); }
+    
+    /* Data Tables */
+    .admin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    .admin-table th { background: var(--bg-card, #231f1c); color: var(--text-secondary, #b5aea4); padding: 12px 14px; font-weight: 600; border-bottom: 1px solid var(--border-subtle, #2f2a25); }
+    .admin-table td { padding: 12px 14px; border-bottom: 1px solid var(--border-subtle, #2f2a25); color: var(--text-primary, #fff); }
+    .admin-table tr:hover { background: var(--bg-card, #231f1c); }
+    .badge-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+    .badge-policy { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .badge-hotel { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-faq { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.3); }
+    .badge-payment { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    
+    /* Config Form */
+    .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media(max-width: 768px) { .config-grid { grid-template-columns: 1fr; } }
+    .config-field { display: flex; flex-direction: column; gap: 6px; }
+    .config-field label { font-size: 13px; color: var(--text-secondary, #b5aea4); font-weight: 600; }
+    .config-field input, .config-field select { background: var(--bg-card, #231f1c); border: 1px solid var(--border-light, #443c35); color: #fff; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 13px; }
+    .config-field input:focus { border-color: var(--accent-primary, #a27b5c); outline: none; }
+    .config-desc { font-size: 11px; color: var(--text-muted, #7e776f); }
+  </style>
+</head>
+<body>
+
+  <header class="admin-header">
+    <a href="/index.html" class="admin-logo">
+      HESTORA <span class="admin-badge">Admin AI Panel</span>
+    </a>
+    <div class="admin-nav-links">
+      <span id="adminNameDisplay">Đang tải...</span>
+      <a href="/hotel-management.html">Quản lý khách sạn</a>
+      <a href="/staff-support.html">Cổng nhân viên</a>
+      <button onclick="logoutAdmin()">Đăng xuất</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Top AI Health & Statistics Cards -->
+    <div class="health-stats-grid">
+      <div class="admin-stat-card">
+        <span class="health-pill" id="healthPill">HEALTHY</span>
+        <div class="title">Tình Trạng Dịch Vụ AI</div>
+        <div class="val" id="valAiStatus">HOẠT ĐỘNG</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="title">Tài Liệu Knowledge Base</div>
+        <div class="val" id="valDocsCount">0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="title">Vector Chunks (128D)</div>
+        <div class="val" id="valChunksCount">0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="title">Cuộc Hội Thoại AI</div>
+        <div class="val" id="valConvsCount">0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="title">Yêu Cầu Chờ Xử Lý</div>
+        <div class="val" id="valPendingHandoffs">0</div>
+      </div>
+    </div>
+
+    <!-- Main Tabs -->
+    <div class="admin-tabs">
+      <button class="tab-btn active" onclick="switchTab('tabKB')">📚 Quản Lý Knowledge Base</button>
+      <button class="tab-btn" onclick="switchTab('tabHandoff')">👨‍💼 Quản Lý Human Handoff</button>
+      <button class="tab-btn" onclick="switchTab('tabConversations')">💬 Lịch Sử Toàn Bộ Hội Thoại</button>
+      <button class="tab-btn" onclick="switchTab('tabConfig')">⚙️ Cấu Hình AI Engine</button>
+    </div>
+
+    <!-- TAB 1: KNOWLEDGE BASE -->
+    <div class="section-panel" id="panelKB">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Kho Tri Thức Doanh Nghiệp (Knowledge Base)</div>
+          <div style="font-size: 13px; color: var(--text-secondary, #b5aea4); margin-top: 4px;">Quản lý tài liệu tri thức làm dữ liệu nền cho RAG Retrieval và đối soát câu hỏi khách hàng.</div>
+        </div>
+        <div class="section-actions">
+          <button class="btn-action-outline" onclick="triggerVectorSync()">🔄 Đồng bộ Live Database vào Vector</button>
+          <button class="btn-action-primary" onclick="openAddDocModal()">+ Thêm tài liệu mới</button>
+        </div>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tiêu Đề Tài Liệu</th>
+            <th>Phân Nhóm</th>
+            <th>Nguồn Tri Thức</th>
+            <th>Trạng Thái</th>
+            <th>Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="kbTableBody">
+          <tr><td colspan="6" style="text-align: center; color: #7e776f;">Đang tải dữ liệu tri thức...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 2: HUMAN HANDOFF -->
+    <div class="section-panel" id="panelHandoff" style="display: none;">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Yêu Cầu Hỗ Trợ Chuyển Tiếp (Human Handoff)</div>
+          <div style="font-size: 13px; color: var(--text-secondary, #b5aea4); margin-top: 4px;">Giám sát và phân công nhân viên lễ tân/CSKH giải quyết các thắc mắc chuyên sâu từ khách hàng.</div>
+        </div>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Mã Phiếu</th>
+            <th>Khách Hàng</th>
+            <th>Liên Hệ</th>
+            <th>Tóm Tắt Yêu Cầu</th>
+            <th>Trạng Thái</th>
+            <th>Nhân Viên Xử Lý</th>
+            <th>Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="handoffTableBody">
+          <tr><td colspan="7" style="text-align: center; color: #7e776f;">Đang tải danh sách phiếu hỗ trợ...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 3: ALL CONVERSATIONS -->
+    <div class="section-panel" id="panelConversations" style="display: none;">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Toàn Bộ Cuộc Hội Thoại Giữa Khách Hàng Và AI</div>
+          <div style="font-size: 13px; color: var(--text-secondary, #b5aea4); margin-top: 4px;">Giám sát chất lượng phản hồi, thời gian thực và phân tích hành vi người dùng.</div>
+        </div>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Session ID</th>
+            <th>User ID</th>
+            <th>Tiêu Đề Hội Thoại</th>
+            <th>Thời Gian Bắt Đầu</th>
+            <th>Cập Nhật Cuối</th>
+          </tr>
+        </thead>
+        <tbody id="conversationsTableBody">
+          <tr><td colspan="6" style="text-align: center; color: #7e776f;">Đang tải danh sách hội thoại...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 4: CONFIGURATION -->
+    <div class="section-panel" id="panelConfig" style="display: none;">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Cấu Hình Tham Số Hệ Thống AI</div>
+          <div style="font-size: 13px; color: var(--text-secondary, #b5aea4); margin-top: 4px;">Điều chỉnh ngưỡng tương đồng Cosine, cửa sổ ngữ cảnh hội thoại và trạng thái dịch vụ.</div>
+        </div>
+        <button class="btn-action-primary" onclick="saveAdminConfig()">Lưu cấu hình</button>
+      </div>
+      <div class="config-grid">
+        <div class="config-field">
+          <label>Ngưỡng Tương Đồng Cosine (Similarity Threshold)</label>
+          <input type="number" step="0.05" min="0.1" max="0.9" id="cfgSimilarity" value="0.25">
+          <span class="config-desc">Ngưỡng tối thiểu để chấp nhận một chunk tri thức từ Vector Store (mặc định 0.25).</span>
+        </div>
+        <div class="config-field">
+          <label>Số Lượt Tin Nhắn Ngữ Cảnh (Max Context Turns)</label>
+          <input type="number" step="1" min="2" max="20" id="cfgMaxTurns" value="6">
+          <span class="config-desc">Số lượt hội thoại gần nhất đưa vào context window để duy trì mạch nói chuyện.</span>
+        </div>
+        <div class="config-field">
+          <label>Mô Hình Nhúng Vector (Embedding Model)</label>
+          <input type="text" id="cfgModel" value="Dense-128d-HESTORA" readonly>
+          <span class="config-desc">Mô hình biểu diễn ngữ nghĩa 128 chiều tối ưu cho tiếng Việt và thuật ngữ khách sạn.</span>
+        </div>
+        <div class="config-field">
+          <label>Trạng Thái Dịch Vụ AI (Service Status)</label>
+          <select id="cfgStatus">
+            <option value="HEALTHY">HEALTHY (Sẵn sàng phục vụ)</option>
+            <option value="MAINTENANCE">MAINTENANCE (Bảo trì)</option>
+          </select>
+          <span class="config-desc">Trạng thái tổng thể phục vụ của AI Engine trên toàn website.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `${window.location.protocol}//${window.location.hostname}:8080/api`
+      : '/api';
+    let currentAdmin = null;
+
+    function getAuthToken() { return localStorage.getItem('token') || (JSON.parse(localStorage.getItem('hotel_user') || '{}').token); }
+
+    async function initAdminPanel() {
+      const token = getAuthToken();
+      if (!token) {
+        alert('Vui lòng đăng nhập với tài khoản Quản trị viên (ADMIN).');
+        window.location.href = '/index.html';
+        return;
+      }
+
+      try {
+        const meRes = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!meRes.ok) throw new Error('Unauthorized');
+        currentAdmin = await meRes.json();
+
+        const role = (currentAdmin.role || '').toUpperCase();
+        if (role !== 'ADMIN' && role !== 'MANAGER') {
+          alert('Quyền truy cập bị từ chối: Chỉ Quản trị viên (ADMIN) mới có quyền truy cập trang này.');
+          window.location.href = '/index.html';
+          return;
+        }
+
+        document.getElementById('adminNameDisplay').innerText = `🛡️ ${currentAdmin.name || currentAdmin.email} (${role})`;
+        loadDashboardStats();
+        loadDocuments();
+        loadHandoffs();
+        loadConversations();
+        loadConfig();
+      } catch (err) {
+        console.error(err);
+        alert('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+        window.location.href = '/index.html';
+      }
+    }
+
+    async function loadDashboardStats() {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        document.getElementById('valDocsCount').innerText = d.totalDocuments || 0;
+        document.getElementById('valChunksCount').innerText = d.totalChunks || 0;
+        document.getElementById('valConvsCount').innerText = d.totalConversations || 0;
+        document.getElementById('valPendingHandoffs').innerText = d.pendingHandoffs || 0;
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadDocuments() {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/documents`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Không thể tải tài liệu');
+        const docs = await res.json();
+        const tbody = document.getElementById('kbTableBody');
+        tbody.innerHTML = docs.map(d => `
+          <tr>
+            <td><strong>#${d.id}</strong></td>
+            <td><strong>${escapeHtml(d.title)}</strong></td>
+            <td><span class="badge-tag badge-${(d.category || 'faq').toLowerCase()}">${escapeHtml(d.category)}</span></td>
+            <td>${escapeHtml(d.sourceType || 'SYSTEM')}</td>
+            <td><span style="color:#4ade80;">● ${escapeHtml(d.status || 'INDEXED')}</span></td>
+            <td>
+              <button style="background:transparent; border:1px solid #dc2626; color:#ef4444; padding:4px 10px; border-radius:4px; cursor:pointer;" onclick="deleteDoc(${d.id})">Xóa</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        document.getElementById('kbTableBody').innerHTML = `<tr><td colspan="6" style="color:#ef4444;">Lỗi: ${e.message}</td></tr>`;
+      }
+    }
+
+    async function loadHandoffs() {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/handoffs`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const handoffs = await res.json();
+        const tbody = document.getElementById('handoffTableBody');
+        tbody.innerHTML = handoffs.map(h => `
+          <tr>
+            <td><strong>#${h.id}</strong></td>
+            <td><strong>${escapeHtml(h.customerName || 'N/A')}</strong></td>
+            <td>📞 ${escapeHtml(h.customerPhone || 'N/A')}<br>✉️ ${escapeHtml(h.customerEmail || 'N/A')}</td>
+            <td>${escapeHtml(h.questionSummary || '')}</td>
+            <td><span class="badge-tag">${escapeHtml(h.status || 'PENDING')}</span></td>
+            <td>${h.assignedStaffId ? `Nhân viên #${h.assignedStaffId}` : '<span style="color:#eab308;">Chưa phân công</span>'}</td>
+            <td>
+              <button style="background:var(--accent-primary); border:none; color:white; padding:4px 10px; border-radius:4px; cursor:pointer;" onclick="assignStaffModal(${h.id})">Phân công</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadConversations() {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/conversations`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const convs = await res.json();
+        const tbody = document.getElementById('conversationsTableBody');
+        tbody.innerHTML = convs.map(c => `
+          <tr>
+            <td><strong>#${c.id}</strong></td>
+            <td><code>${escapeHtml(c.sessionId)}</code></td>
+            <td>${c.userId ? `User #${c.userId}` : '<span style="color:#7e776f;">Khách vãng lai</span>'}</td>
+            <td>${escapeHtml(c.title || 'Cuộc trò chuyện')}</td>
+            <td>${formatDate(c.createdAt)}</td>
+            <td>${formatDate(c.updatedAt)}</td>
+          </tr>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadConfig() {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/config`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const list = await res.json();
+        list.forEach(item => {
+          if (item.configKey === 'ai.similarity_threshold') document.getElementById('cfgSimilarity').value = item.configValue;
+          if (item.configKey === 'ai.max_context_turns') document.getElementById('cfgMaxTurns').value = item.configValue;
+          if (item.configKey === 'ai.service_status') document.getElementById('cfgStatus').value = item.configValue;
+        });
+      } catch (e) { console.error(e); }
+    }
+
+    async function saveAdminConfig() {
+      const token = getAuthToken();
+      const payload = {
+        'ai.similarity_threshold': document.getElementById('cfgSimilarity').value,
+        'ai.max_context_turns': document.getElementById('cfgMaxTurns').value,
+        'ai.service_status': document.getElementById('cfgStatus').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/config`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        alert(d.message || 'Lưu cấu hình thành công!');
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    async function triggerVectorSync() {
+      const token = getAuthToken();
+      if (!confirm('Bạn có chắc chắn muốn đồng bộ dữ liệu phòng và khách sạn vào Vector Store?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/sync`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const d = await res.json();
+        if (d.success) {
+          alert(`Đồng bộ thành công ${d.syncedDocuments} tài liệu vào Vector Store!`);
+          loadDashboardStats();
+          loadDocuments();
+        } else {
+          alert('Đồng bộ thất bại.');
+        }
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    async function deleteDoc(id) {
+      if (!confirm(`Xác nhận xóa tài liệu tri thức #${id}?`)) return;
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/documents/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          alert('Đã xóa tài liệu thành công.');
+          loadDashboardStats();
+          loadDocuments();
+        }
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    async function assignStaffModal(handoffId) {
+      const staffIdStr = prompt('Nhập ID nhân viên tiếp nhận phiếu (Ví dụ: 3 cho staff@hotelbooking.com):', '3');
+      if (!staffIdStr) return;
+      const staffId = parseInt(staffIdStr, 10);
+      if (isNaN(staffId)) { alert('ID nhân viên không hợp lệ'); return; }
+
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/handoffs/${handoffId}/assign`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staffId })
+        });
+        const d = await res.json();
+        if (d.success) {
+          alert(d.message);
+          loadHandoffs();
+          loadDashboardStats();
+        } else {
+          alert(d.message || 'Lỗi phân công');
+        }
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('panelKB').style.display = tabId === 'tabKB' ? 'block' : 'none';
+      document.getElementById('panelHandoff').style.display = tabId === 'tabHandoff' ? 'block' : 'none';
+      document.getElementById('panelConversations').style.display = tabId === 'tabConversations' ? 'block' : 'none';
+      document.getElementById('panelConfig').style.display = tabId === 'tabConfig' ? 'block' : 'none';
+    }
+
+    function openAddDocModal() {
+      const title = prompt('Tiêu đề tài liệu tri thức:');
+      if (!title) return;
+      const category = prompt('Phân nhóm (HOTEL_INFO / ROOM_INFO / POLICY / PAYMENT / FAQ):', 'FAQ');
+      if (!category) return;
+      const content = prompt('Nội dung tri thức:');
+      if (!content) return;
+
+      const token = getAuthToken();
+      fetch(`${API_BASE}/ai/admin/documents`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, category, content, sourceType: 'ADMIN_MANUAL' })
+      }).then(r => r.json()).then(d => {
+        alert('Đã thêm tài liệu tri thức thành công!');
+        loadDashboardStats();
+        loadDocuments();
+      }).catch(e => alert('Lỗi: ' + e.message));
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/index.html';
+    }
+
+    function formatDate(dtStr) {
+      if (!dtStr) return '-';
+      try {
+        const d = new Date(dtStr);
+        return d.toLocaleString('vi-VN');
+      } catch (e) { return dtStr; }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', initAdminPanel);
+  </script>
+</body>
+</html>
+

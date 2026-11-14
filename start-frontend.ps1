@@ -1,4 +1,4 @@
-﻿param(
+param(
     [int]$Port = 3000
 )
 
@@ -78,6 +78,10 @@ try {
             $localPath = "/index.html"
         } elseif ($localPath -eq "/hotel_management.html") {
             $localPath = "/hotel-management.html"
+        } elseif ($localPath -like "*admin*dashboard*") {
+            $localPath = "/admin-dashboard.html"
+        } elseif ($localPath -like "*staff*dashboard*") {
+            $localPath = "/staff-dashboard.html"
         }
 
         $cleanPath = $localPath.TrimStart('/').Replace('/', '\')
