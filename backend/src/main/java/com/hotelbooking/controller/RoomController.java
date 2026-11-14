@@ -88,14 +88,14 @@ public class RoomController {
         return ResponseEntity.ok(roomRepository.save(existing));
     }
 
-    // FR-69: Cập nhật trạng thái hoạt động của phòng (AVAILABLE, MAINTENANCE)
+    // FR-69: Cập nhật trạng thái hoạt động của phòng (AVAILABLE, MAINTENANCE, DIRTY...)
     @PatchMapping("/rooms/{id}/status")
     public ResponseEntity<Room> updateRoomStatus(
             @PathVariable Long id,
             @RequestParam String status,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         Optional<User> user = accessControl.authenticate(authorization);
-        if (user.isEmpty() || (!accessControl.isAdmin(user.get()) && !"MANAGER".equalsIgnoreCase(user.get().getRole()))) {
+        if (user.isEmpty() || !accessControl.isStaffOrAdmin(user.get())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 

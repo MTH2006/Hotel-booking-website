@@ -38,11 +38,46 @@ function startServer(port) {
       return;
     }
 
+    // Proxy API requests to backend Spring Boot on port 8080
+    if (req.url.startsWith('/api/') || req.url === '/api') {
+      const proxyReq = http.request({
+        hostname: 'localhost',
+        port: 8080,
+        path: req.url,
+        method: req.method,
+        headers: {
+          ...req.headers,
+          host: 'localhost:8080'
+        }
+      }, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res);
+      });
+      proxyReq.on('error', (err) => {
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, message: 'Backend chưa sẵn sàng trên cổng 8080: ' + err.message }));
+      });
+      req.pipe(proxyReq);
+      return;
+    }
+
     let urlPath = req.url.split('?')[0];
+    let decodedPath = '';
+    try {
+      decodedPath = decodeURIComponent(urlPath);
+    } catch {
+      decodedPath = urlPath;
+    }
+
+    // Handle aliases and redirects
     if (urlPath === '/' || urlPath === '') {
       urlPath = '/index.html';
-    } else if (urlPath === '/hotel_management.html') {
+    } else if (urlPath === '/hotel_management.html' || decodedPath.includes('hotel_management')) {
       urlPath = '/hotel-management.html';
+    } else if (decodedPath.includes('admin') && decodedPath.includes('dashboard')) {
+      urlPath = '/admin-dashboard.html';
+    } else if (decodedPath.includes('staff') && decodedPath.includes('dashboard')) {
+      urlPath = '/staff-dashboard.html';
     }
 
     // Decode URL

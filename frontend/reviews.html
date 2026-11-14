@@ -4,6 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Đánh giá khách sạn | Hestora</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/ai-chatbot.css">
   <style>
     body{background:#f7f5f1;color:#24211d}.reviews-page{max-width:1000px;margin:110px auto 70px;padding:24px}.reviews-page h1{font-size:2.2rem}.review-toolbar,.review-form,.review-card{background:#fff;border:1px solid #e8e1d8;border-radius:16px;padding:22px;margin:18px 0}.review-toolbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.review-toolbar select,.review-form select,.review-form textarea,.review-form input{padding:12px;border:1px solid #d8d0c6;border-radius:8px;font:inherit}.review-form{display:grid;gap:14px}.review-form textarea{min-height:110px}.review-list{display:grid;gap:12px}.review-card{margin:0}.review-card header{display:flex;justify-content:space-between;gap:12px}.stars{color:#bf8a35}.muted{color:#777}.review-actions{display:flex;gap:8px;margin-top:12px}.review-actions button,.review-submit{padding:9px 14px;border:0;border-radius:8px;cursor:pointer;background:#27231f;color:white}.review-actions .danger{background:#9c3832}.review-card p{white-space:pre-wrap}.notice{padding:12px;border-radius:8px;background:#f1e9dc}.hidden{display:none!important}
   </style>
@@ -17,5 +18,9 @@
     <h2 id="listTitle">Đánh giá đã công khai</h2><section id="reviewList" class="review-list"></section>
   </main>
   <script src="js/reviews.js"></script>
+  <!-- React & AI Chatbot Widget -->
+  <div id="hestora-ai-chatbot-root"></div>
+  <script src="js/vendor/react-lite.js"></script>
+  <script src="js/ai-chatbot.js"></script>
 </body>
 </html>

@@ -4,8 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Hệ thống Quản trị & Điều hành | HESTORA</title>
+  <script>
+    // Redirect to separated Admin Dashboard
+    window.location.replace('/admin-dashboard.html');
+  </script>
   <link rel="icon" href="assets/images/hestora_logo.jpg">
   <link rel="stylesheet" href="css/hotel-management.css">
+  <link rel="stylesheet" href="css/ai-chatbot.css">
   <style>
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -33,6 +38,7 @@
     <a class="side-link" data-tab="tabPromotions" href="javascript:void(0)">🏷　Mã khuyến mãi</a>
     <a class="side-link" data-tab="tabUsers" href="javascript:void(0)">👥　Người dùng & Quyền</a>
     <a class="side-link" data-tab="tabSupport" href="javascript:void(0)">💬　Hỗ trợ CSKH 24/7</a>
+    <a class="side-link" data-tab="tabAIChatbot" href="javascript:void(0)">🤖　Trợ lý AI & Tri thức</a>
     
     <div class="sidebar-bottom">
       <span class="avatar" id="userAvatar">HT</span>
@@ -460,6 +466,116 @@
       </div>
     </section>
 
+    <!-- =========================================================================
+         TAB 8: QUẢN TRỊ AI HOTEL ASSISTANT & KNOWLEDGE BASE
+         ========================================================================= -->
+    <section id="tabAIChatbot" class="tab-content">
+      <div class="intro">
+        <div>
+          <div class="eyebrow">HESTORA AI & RAG RETRIEVAL ENGINE</div>
+          <h1>Quản trị Trợ lý ảo & Cơ sở Tri thức AI</h1>
+          <p>Quản lý Knowledge Base, giám sát lịch sử hội thoại, xử lý yêu cầu chuyển tiếp CSKH và cấu hình AI Model.</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="primary" onclick="window.open('/admin-ai-assistant.html', '_blank')" style="background:#4338ca; border:none; padding:10px 18px; border-radius:8px; color:#fff; font-weight:600; cursor:pointer;">
+            ⚡ Mở Trang AI Assistant Toàn Diện
+          </button>
+          <button class="primary" id="btnSyncAIKnowledge" style="background:#ea580c; border:none; padding:10px 18px; border-radius:8px; color:#fff; font-weight:600; cursor:pointer;">
+            🔄 Đồng bộ & Re-index Tri thức
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Metrics Summary Cards -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+          <span style="font-size:12px; color:#64748b; font-weight:600;">TỔNG HỘI THOẠI</span>
+          <h2 id="aiStatConversations" style="margin:6px 0 0 0; font-size:26px; color:#0f172a;">--</h2>
+        </div>
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+          <span style="font-size:12px; color:#64748b; font-weight:600;">TỔNG TIN NHẮN</span>
+          <h2 id="aiStatMessages" style="margin:6px 0 0 0; font-size:26px; color:#0f172a;">--</h2>
+        </div>
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+          <span style="font-size:12px; color:#64748b; font-weight:600;">TÀI LIỆU KNOWLEDGE BASE</span>
+          <h2 id="aiStatDocuments" style="margin:6px 0 0 0; font-size:26px; color:#0f172a;">--</h2>
+        </div>
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+          <span style="font-size:12px; color:#64748b; font-weight:600;">YÊU CẦU CSKH CHỜ XỬ LÝ</span>
+          <h2 id="aiStatHandoffs" style="margin:6px 0 0 0; font-size:26px; color:#ea580c;">--</h2>
+        </div>
+      </div>
+
+      <!-- Section 1: Knowledge Base Documents -->
+      <div class="panel" style="margin-bottom:24px;">
+        <div class="toolbar">
+          <div>
+            <h2>Cơ sở tri thức khách sạn (Knowledge Base)</h2>
+            <p>Dữ liệu chính sách, hạng phòng và thông tin được sử dụng để truy xuất RAG.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>TIÊU ĐỀ TÀI LIỆU</th>
+                <th>DANH MỤC</th>
+                <th>NGUỒN DỮ LIỆU</th>
+                <th>SỐ CHUNKS</th>
+                <th>TRẠNG THÁI</th>
+              </tr>
+            </thead>
+            <tbody id="aiDocRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section 2: Handoff Support Requests -->
+      <div class="panel" style="margin-bottom:24px;">
+        <div class="toolbar">
+          <div>
+            <h2>Phiếu yêu cầu nhân viên hỗ trợ trực tiếp (Handoffs)</h2>
+            <p>Danh sách khách hàng yêu cầu gặp nhân viên hoặc AI chưa có thông tin chính xác.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>MÃ PHIẾU</th>
+                <th>KHÁCH HÀNG</th>
+                <th>SỐ ĐIỆN THOẠI</th>
+                <th>EMAIL</th>
+                <th>NỘI DUNG YÊU CẦU</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="aiHandoffRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section 3: AI Configuration Details -->
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Thông số kỹ thuật AI & RAG Engine</h2>
+            <p>Cấu hình hoạt động của Vector Search và mô hình sinh ngôn ngữ.</p>
+          </div>
+        </div>
+        <div style="padding:16px 20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; font-size:13px;">
+          <div><b>Thuật toán Vector Search:</b> Cosine Similarity (PostgreSQL Native PL/pgSQL)</div>
+          <div><b>Vector Dimension:</b> 128 dimensions (Dense Embedding)</div>
+          <div><b>Similarity Threshold:</b> 0.25 (Độ tương đồng tối thiểu)</div>
+          <div><b>Multi-turn Context:</b> 6 tin nhắn gần nhất</div>
+          <div><b>Quy tắc Zero-Hallucination:</b> Bật (Strict Grounding)</div>
+          <div><b>Tích hợp nghiệp vụ:</b> Tra phòng, giá, kiểm tra booking, hủy an toàn</div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- =========================================================================
@@ -594,5 +710,8 @@
 
   <!-- Management Logic -->
   <script src="js/hotel-management.js"></script>
+  <!-- React & AI Chatbot Widget -->
+  <script src="js/vendor/react-lite.js"></script>
+  <script src="js/ai-chatbot.js"></script>
 </body>
 </html>

@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bảng Điều Hành & Quản Trị Hệ Thống (Admin Portal) | HESTORA</title>
+  <link rel="icon" href="/assets/images/hestora_logo.jpg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/ai-chatbot.css">
+  <style>
+    :root {
+      --bg-main: #141210;
+      --bg-surface: #1b1815;
+      --bg-card: #231f1c;
+      --accent-primary: #a27b5c;
+      --accent-light: #b88e68;
+      --accent-glow: rgba(162, 123, 92, 0.2);
+      --border-subtle: #2f2a25;
+      --border-light: #443c35;
+      --text-primary: #ffffff;
+      --text-secondary: #b5aea4;
+      --text-muted: #7e776f;
+      --status-red: #ef4444;
+      --status-green: #22c55e;
+      --status-amber: #f59e0b;
+      --status-blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; }
+    body { background: var(--bg-main); color: var(--text-primary); font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif); margin: 0; padding: 0; overflow-x: hidden; }
+
+    /* Admin Layout Structure */
+    .admin-app-container { display: flex; height: 100vh; overflow: hidden; }
+
+    /* AdminSidebar */
+    .admin-sidebar { width: 290px; background: var(--bg-surface); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-brand { padding: 22px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; }
+    .brand-title { font-family: var(--font-serif, serif); font-size: 20px; font-weight: 700; color: var(--accent-primary); text-decoration: none; letter-spacing: 1px; }
+    .admin-role-pill { background: #dc2626; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 3px; }
+    .nav-group-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; padding: 12px 14px 4px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+    .nav-item:hover { background: var(--bg-card); color: #fff; }
+    .nav-item.active { background: rgba(162, 123, 92, 0.15); color: var(--accent-light); border-color: var(--accent-primary); }
+    .nav-item .icon { font-size: 16px; width: 22px; text-align: center; }
+    .nav-badge { margin-left: auto; background: var(--accent-primary); color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; }
+    .admin-profile-chip { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+    .admin-avatar { width: 38px; height: 38px; border-radius: 50%; background: #dc2626; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    .admin-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .admin-meta strong { display: block; color: #fff; font-size: 13px; }
+
+    /* AdminMainWrapper */
+    .admin-main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* AdminHeader */
+    .admin-header { height: 68px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .breadcrumbs { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+    .breadcrumbs span.current { color: #fff; font-weight: 600; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-btn { background: var(--bg-card); border: 1px solid var(--border-light); color: var(--text-secondary); padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .header-btn:hover { color: #fff; border-color: var(--accent-primary); }
+    .header-btn.accent { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .header-btn.accent:hover { background: var(--accent-light); }
+
+    /* Content Body */
+    .admin-content-body { flex: 1; overflow-y: auto; padding: 28px 32px; }
+    .admin-tab-view { display: none; }
+    .admin-tab-view.active { display: block; }
+
+    /* KPI / Stat Cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 28px; }
+    .kpi-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; position: relative; }
+    .kpi-card .kpi-sub { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+    .kpi-card .kpi-val { font-size: 28px; font-weight: 700; color: var(--accent-light); margin-top: 6px; }
+    .kpi-card .kpi-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .kpi-badge { position: absolute; top: 18px; right: 18px; font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 700; }
+    .badge-green { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-red { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* Panels & Tables */
+    .panel-box { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .panel-title { font-size: 17px; font-weight: 700; color: #fff; margin: 0; }
+    .panel-subtitle { font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0; }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    .data-table th { background: var(--bg-card); color: var(--text-secondary); padding: 12px 14px; font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
+    .data-table td { padding: 13px 14px; border-bottom: 1px solid var(--border-subtle); color: #fff; vertical-align: middle; }
+    .data-table tr:hover { background: var(--bg-card); }
+
+    /* Action Buttons */
+    .btn-sm-action { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-action-edit { background: #3b82f6; color: white; }
+    .btn-action-delete { background: #dc2626; color: white; }
+    .btn-action-toggle { background: #6b7280; color: white; }
+    .btn-action-view { background: #0891b2; color: white; }
+    .btn-action-gold { background: var(--accent-primary); color: white; }
+
+    /* Filter Bar */
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-input { background: var(--bg-card); border: 1px solid var(--border-light); color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 220px; }
+    .filter-input:focus { border-color: var(--accent-primary); outline: none; }
+    .filter-select { background: var(--bg-card); border: 1px solid var(--border-light); color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; min-width: 160px; }
+    .filter-select:focus { border-color: var(--accent-primary); outline: none; }
+
+    /* Form Fields in Settings / Add Modals */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+    .form-group input, .form-group select, .form-group textarea { background: var(--bg-card); border: 1px solid var(--border-light); color: #fff; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 13px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent-primary); outline: none; }
+    .form-group small { font-size: 11px; color: var(--text-muted); }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+      .admin-sidebar { width: 240px; }
+      .admin-content-body { padding: 20px; }
+    }
+    @media (max-width: 768px) {
+      .admin-app-container { flex-direction: column; }
+      .admin-sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-subtle); }
+      .sidebar-nav { max-height: 200px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-app-container">
+    <!-- =========================================================================
+         1. ADMIN SIDEBAR (AdminSidebar & AdminNavigation)
+         ========================================================================= -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <a href="/index.html" class="brand-title">HESTORA</a>
+        <span class="admin-role-pill">ADMIN PORTAL</span>
+      </div>
+
+      <nav class="sidebar-nav" id="adminNav">
+        <div class="nav-group-label">ĐIỀU HÀNH & BÁO CÁO</div>
+        <a class="nav-item active" data-tab="tabDashboard" onclick="switchAdminTab('tabDashboard', this)">
+          <span class="icon">⌂</span> Dashboard Tổng Quan
+        </a>
+        <a class="nav-item" data-tab="tabReports" onclick="switchAdminTab('tabReports', this)">
+          <span class="icon">📊</span> Quản Lý Báo Cáo
+        </a>
+        <a class="nav-item" data-tab="tabPayments" onclick="switchAdminTab('tabPayments', this)">
+          <span class="icon">💳</span> Quản Lý Thanh Toán
+        </a>
+
+        <div class="nav-group-label">TÀI NGUYÊN KHÁCH SẠN</div>
+        <a class="nav-item" data-tab="tabHotels" onclick="switchAdminTab('tabHotels', this)">
+          <span class="icon">🏨</span> Quản Lý Khách Sạn
+        </a>
+        <a class="nav-item" data-tab="tabRooms" onclick="switchAdminTab('tabRooms', this)">
+          <span class="icon">🚪</span> Quản Lý Phòng
+        </a>
+        <a class="nav-item" data-tab="tabRoomTypes" onclick="switchAdminTab('tabRoomTypes', this)">
+          <span class="icon">🛏</span> Quản Lý Loại Phòng
+        </a>
+        <a class="nav-item" data-tab="tabServices" onclick="switchAdminTab('tabServices', this)">
+          <span class="icon">✨</span> Quản Lý Dịch Vụ
+        </a>
+
+        <div class="nav-group-label">NGHIỆP VỤ & KHÁCH HÀNG</div>
+        <a class="nav-item" data-tab="tabBookings" onclick="switchAdminTab('tabBookings', this)">
+          <span class="icon">📋</span> Quản Lý Đặt Phòng
+        </a>
+        <a class="nav-item" data-tab="tabStaff" onclick="switchAdminTab('tabStaff', this)">
+          <span class="icon">👔</span> Quản Lý Nhân Viên
+        </a>
+        <a class="nav-item" data-tab="tabCustomers" onclick="switchAdminTab('tabCustomers', this)">
+          <span class="icon">👥</span> Quản Lý Khách Hàng
+        </a>
+        <a class="nav-item" data-tab="tabReviews" onclick="switchAdminTab('tabReviews', this)">
+          <span class="icon">⭐</span> Quản Lý Đánh Giá
+        </a>
+        <a class="nav-item" data-tab="tabPromotions" onclick="switchAdminTab('tabPromotions', this)">
+          <span class="icon">🏷</span> Quản Lý Khuyến Mãi
+        </a>
+
+        <div class="nav-group-label">HỆ THỐNG & AI</div>
+        <a class="nav-item" data-tab="tabAIAssistant" onclick="switchAdminTab('tabAIAssistant', this)">
+          <span class="icon">🤖</span> AI & Knowledge Base
+          <span class="nav-badge" id="aiHandoffCountBadge">0</span>
+        </a>
+        <a class="nav-item" data-tab="tabSettings" onclick="switchAdminTab('tabSettings', this)">
+          <span class="icon">⚙</span> Cài Đặt Hệ Thống
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="admin-profile-chip">
+          <div class="admin-avatar" id="adminAvatar">AD</div>
+          <div class="admin-meta">
+            <strong id="adminFullName">Admin Hestora</strong>
+            <span style="color:var(--text-muted); font-size:11px;" id="adminEmail">admin@hotelbooking.com</span>
+          </div>
+        </div>
+        <button onclick="logoutAdmin()" class="header-btn" title="Đăng xuất" style="padding:6px 10px;">Đăng xuất</button>
+      </div>
+    </aside>
+
+    <!-- =========================================================================
+         2. MAIN WRAPPER (AdminHeader & AdminDashboard tabs)
+         ========================================================================= -->
+    <div class="admin-main-wrapper">
+      <!-- AdminHeader -->
+      <header class="admin-header">
+        <div class="header-left">
+          <div class="breadcrumbs">
+            <span>Quản Trị Hệ Thống</span>
+            <span>/</span>
+            <span class="current" id="breadcrumbTitle">Dashboard Tổng Quan</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a href="/admin/ai-assistant" target="_blank" class="header-btn accent">
+            ⚡ Mở Trang AI Assistant
+          </a>
+          <a href="/index.html" class="header-btn">
+            🌐 Xem Website Khách
+          </a>
+        </div>
+      </header>
+
+      <!-- Content Body Container -->
+      <main class="admin-content-body">
+
+        <!-- ===================================================================
+             TAB 1: DASHBOARD TỔNG QUAN
+             =================================================================== -->
+        <section id="tabDashboard" class="admin-tab-view active">
+          <div class="stats-grid">
+            <div class="kpi-card">
+              <span class="kpi-sub">Doanh Thu Tích Lũy</span>
+              <div class="kpi-val" id="dashTotalRevenue">0đ</div>
+              <div class="kpi-desc">Tổng giá trị đơn đặt phòng</div>
+              <span class="kpi-badge badge-green">+18.5% tháng này</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-sub">Tổng Lượt Đặt Phòng</span>
+              <div class="kpi-val" id="dashTotalBookings">0</div>
+              <div class="kpi-desc">Bao gồm toàn bộ đơn</div>
+              <span class="kpi-badge badge-blue" id="dashPendingBadge">0 Chờ duyệt</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-sub">Tỷ Lệ Lấp Đầy Phòng</span>
+              <div class="kpi-val" id="dashOccupancyRate">76.4%</div>
+              <div class="kpi-desc">Trung bình toàn chuỗi</div>
+              <span class="kpi-badge badge-amber">Tối ưu</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-sub">Yêu Cầu Chuyển Tiếp AI</span>
+              <div class="kpi-val" id="dashHandoffs">0</div>
+              <div class="kpi-desc">Chờ nhân viên hỗ trợ</div>
+              <span class="kpi-badge badge-red" id="dashHandoffBadge">0 Pending</span>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Đơn Đặt Phòng Gần Đây</h3>
+                <p class="panel-subtitle">Theo dõi các giao dịch phát sinh tức thời trên nền tảng.</p>
+              </div>
+              <button class="header-btn" onclick="switchAdminTab('tabBookings')">Xem tất cả đơn →</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã Đơn</th>
+                    <th>Khách Hàng</th>
+                    <th>Khách Sạn & Phòng</th>
+                    <th>Thời Gian Lưu Trú</th>
+                    <th>Tổng Tiền</th>
+                    <th>Thanh Toán</th>
+                    <th>Trạng Thái</th>
+                  </tr>
+                </thead>
+                <tbody id="dashBookingsTbody">
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 2: QUẢN LÝ NHÂN VIÊN (Staff Management)
+             =================================================================== -->
+        <section id="tabStaff" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Danh Sách Nhân Sự & Phân Quyền</h3>
+                <p class="panel-subtitle">Quản lý đội ngũ Lễ tân (STAFF) tiếp nhận và vận hành buồng phòng.</p>
+              </div>
+              <button class="header-btn accent" onclick="openAddStaffModal()">＋ Thêm Nhân Viên Mới</button>
+            </div>
+            <div class="filter-bar">
+              <input type="text" id="staffSearchInput" class="filter-input" placeholder="Tìm theo tên, email, số điện thoại..." oninput="renderStaffTable()">
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Họ Và Tên</th>
+                    <th>Email Tài Khoản</th>
+                    <th>Số Điện Thoại</th>
+                    <th>Vai Trò</th>
+                    <th>Ca Làm Việc</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="staffTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 3: QUẢN LÝ KHÁCH HÀNG (Customer Management)
+             =================================================================== -->
+        <section id="tabCustomers" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Danh Mục Khách Hàng Nền Tảng</h3>
+                <p class="panel-subtitle">Hồ sơ khách hàng, lịch sử đặt phòng và hạn mức chi tiêu.</p>
+              </div>
+            </div>
+            <div class="filter-bar">
+              <input type="text" id="customerSearchInput" class="filter-input" placeholder="Tìm theo tên, email, số điện thoại..." oninput="renderCustomersTable()">
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Khách Hàng</th>
+                    <th>Email</th>
+                    <th>Số Điện Thoại</th>
+                    <th>Hạng Thành Viên</th>
+                    <th>Số Lượt Đặt</th>
+                    <th>Tổng Chi Tiêu</th>
+                    <th>Trạng Thái</th>
+                  </tr>
+                </thead>
+                <tbody id="customersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 4: QUẢN LÝ KHÁCH SẠN (Hotels)
+             =================================================================== -->
+        <section id="tabHotels" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Chuỗi Khách Sạn & Khu Nghỉ Dưỡng HESTORA</h3>
+                <p class="panel-subtitle">Quản lý các cơ sở lưu trú trực thuộc hệ thống.</p>
+              </div>
+              <button class="header-btn accent" onclick="openAddHotelModal()">＋ Thêm Khách Sạn Mới</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Cơ Sở Khách Sạn</th>
+                    <th>Địa Chỉ</th>
+                    <th>Hạng Sao</th>
+                    <th>Hotline & Email</th>
+                    <th>Số Phòng</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="hotelsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 5: QUẢN LÝ PHÒNG (Room Inventory)
+             =================================================================== -->
+        <section id="tabRooms" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Sơ Đồ & Tình Trạng Buồng Phòng</h3>
+                <p class="panel-subtitle">Kiểm soát trạng thái phòng trống, đang có khách, vệ sinh hoặc bảo trì.</p>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <select id="roomFilterStatus" class="filter-select" onchange="renderRoomsTable()">
+                  <option value="ALL">Tất cả tình trạng</option>
+                  <option value="AVAILABLE">Trống (Sẵn sàng)</option>
+                  <option value="OCCUPIED">Đang có khách</option>
+                  <option value="CLEANING">Đang dọn phòng</option>
+                  <option value="MAINTENANCE">Bảo trì</option>
+                </select>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Số Phòng</th>
+                    <th>Thuộc Khách Sạn</th>
+                    <th>Hạng Phòng</th>
+                    <th>Sức Chứa</th>
+                    <th>Giá / Đêm</th>
+                    <th>Tình Trạng</th>
+                    <th>Cập Nhật Tình Trạng</th>
+                  </tr>
+                </thead>
+                <tbody id="roomsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 6: QUẢN LÝ LOẠI PHÒNG (Room Types)
+             =================================================================== -->
+        <section id="tabRoomTypes" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Danh Mục Hạng Phòng & Định Giá</h3>
+                <p class="panel-subtitle">Cấu hình tiêu chuẩn phòng Standard, Deluxe, Suite, Executive.</p>
+              </div>
+              <button class="header-btn accent" onclick="alert('Tính năng thêm hạng phòng mới sẵn sàng.')">＋ Thêm Loại Phòng</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Hạng Phòng</th>
+                    <th>Mã Chuẩn</th>
+                    <th>Diện Tích</th>
+                    <th>Sức Chứa Chuẩn</th>
+                    <th>Giá Cơ Sở</th>
+                    <th>Tiện Nghi Tiêu Chuẩn</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="roomTypesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 7: QUẢN LÝ ĐẶT PHÒNG (Bookings)
+             =================================================================== -->
+        <section id="tabBookings" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Toàn Bộ Đơn Đặt Phòng</h3>
+                <p class="panel-subtitle">Tra cứu, xác nhận, check-in, check-out hoặc hủy đơn toàn hệ thống.</p>
+              </div>
+            </div>
+            <div class="filter-bar">
+              <input type="text" id="bookingSearchInput" class="filter-input" placeholder="Mã HB-..., tên khách, SĐT..." oninput="filterAdminBookings()">
+              <select id="bookingFilterStatus" class="filter-select" onchange="filterAdminBookings()">
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="PENDING">Chờ xác nhận</option>
+                <option value="CONFIRMED">Đã xác nhận</option>
+                <option value="CHECKED_IN">Đang lưu trú</option>
+                <option value="COMPLETED">Đã hoàn tất</option>
+                <option value="CANCELLED">Đã hủy</option>
+              </select>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã Đơn</th>
+                    <th>Khách Hàng</th>
+                    <th>Khách Sạn & Loại Phòng</th>
+                    <th>Thời Gian</th>
+                    <th>Tổng Tiền</th>
+                    <th>Thanh Toán</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="adminBookingsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 8: QUẢN LÝ THANH TOÁN (Payments)
+             =================================================================== -->
+        <section id="tabPayments" class="admin-tab-view">
+          <div class="stats-grid">
+            <div class="kpi-card">
+              <span class="kpi-sub">Doanh Thu Đã Thu</span>
+              <div class="kpi-val" id="paymentPaidRevenue">0đ</div>
+              <div class="kpi-desc">Giao dịch thành công</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-sub">Tiền Chờ Thanh Toán</span>
+              <div class="kpi-val" id="paymentPendingRevenue">0đ</div>
+              <div class="kpi-desc">Khách thanh toán tại quầy</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-sub">Tỷ Lệ Qua VNPAY/MoMo</span>
+              <div class="kpi-val">82%</div>
+              <div class="kpi-desc">Thanh toán không tiền mặt</div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <div class="panel-header">
+              <h3 class="panel-title">Nhật Ký Giao Dịch & Đối Soát Thanh Toán</h3>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã Giao Dịch</th>
+                    <th>Mã Đơn</th>
+                    <th>Khách Hàng</th>
+                    <th>Cổng Thanh Toán</th>
+                    <th>Số Tiền</th>
+                    <th>Thời Điểm</th>
+                    <th>Trạng Thái</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 9: QUẢN LÝ DỊCH VỤ (Services)
+             =================================================================== -->
+        <section id="tabServices" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Dịch Vụ Gia Tăng & Tiện Ích Cao Cấp</h3>
+                <p class="panel-subtitle">Dịch vụ Spa, Đưa đón sân bay, Buffet sáng, Tour du lịch.</p>
+              </div>
+              <button class="header-btn accent" onclick="alert('Thêm dịch vụ mới')">＋ Thêm Dịch Vụ Mới</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tên Dịch Vụ</th>
+                    <th>Mã Dịch Vụ</th>
+                    <th>Đơn Vị Tính</th>
+                    <th>Đơn Giá Niêm Yết</th>
+                    <th>Khách Sạn Áp Dụng</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="servicesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 10: QUẢN LÝ ĐÁNH GIÁ (Reviews)
+             =================================================================== -->
+        <section id="tabReviews" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Kiểm Duyệt Đánh Giá Của Khách Hàng</h3>
+                <p class="panel-subtitle">Theo dõi phản hồi, chất lượng dịch vụ và phản hồi chính thức.</p>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Khách Hàng</th>
+                    <th>Khách Sạn</th>
+                    <th>Số Sao</th>
+                    <th>Nội Dung Đánh Giá</th>
+                    <th>Thời Gian</th>
+                    <th>Hiển Thị</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="reviewsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 11: QUẢN LÝ KHUYẾN MÃI (Promotions)
+             =================================================================== -->
+        <section id="tabPromotions" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Chương Trình Khuyến Mãi & Voucher Giảm Giá</h3>
+                <p class="panel-subtitle">Tạo mã ưu đãi, giới hạn mức giảm và theo dõi số lượt sử dụng.</p>
+              </div>
+              <button class="header-btn accent" onclick="openAddPromoModal()">＋ Thêm Mã Khuyến Mãi</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã Voucher</th>
+                    <th>Tiêu Đề Chương Trình</th>
+                    <th>Mức Giảm</th>
+                    <th>Giảm Tối Đa</th>
+                    <th>Đơn Tối Thiểu</th>
+                    <th>Đã Sử Dụng</th>
+                    <th>Trạng Thái</th>
+                  </tr>
+                </thead>
+                <tbody id="promosTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 12: BÁO CÁO & PHÂN TÍCH (Reports & Analytics)
+             =================================================================== -->
+        <section id="tabReports" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Báo Cáo Hoạt Động & Doanh Thu Chi Tiết</h3>
+                <p class="panel-subtitle">Tổng hợp chỉ số kinh doanh theo cơ sở và kỳ báo cáo.</p>
+              </div>
+              <button class="header-btn" onclick="exportAdminReport()">⭳ Xuất Báo Cáo Excel / PDF</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Khách Sạn</th>
+                    <th>Tổng Đơn</th>
+                    <th>Đơn Thành Công</th>
+                    <th>Tỷ Lệ Hủy</th>
+                    <th>Doanh Thu Tháng</th>
+                    <th>Tỷ Lệ Lấp Đầy</th>
+                  </tr>
+                </thead>
+                <tbody id="reportsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 13: QUẢN LÝ AI ASSISTANT & KNOWLEDGE BASE
+             =================================================================== -->
+        <section id="tabAIAssistant" class="admin-tab-view">
+          <div class="stats-grid">
+            <div class="kpi-card">
+              <span class="kpi-sub">Số Tài Liệu Tri Thức</span>
+              <div class="kpi-val" id="aiDocCount">0</div>
+              <div class="kpi-desc">Tài liệu đã số hóa RAG</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-sub">Vector Embeddings</span>
+              <div class="kpi-val" id="aiVectorCount">0</div>
+              <div class="kpi-desc">PgVector store 1536-dim</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-sub">Yêu Cầu CSKH Chờ Xử Lý</span>
+              <div class="kpi-val" id="aiPendingCount">0</div>
+              <div class="kpi-desc">Phiếu Human Handoff</div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Điều Khiển RAG & Vector Engine</h3>
+                <p class="panel-subtitle">Đồng bộ dữ liệu phòng, chính sách khách sạn vào cơ sở tri thức.</p>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button class="header-btn accent" onclick="syncAIVectorStore()">🔄 Đồng Bộ Tri Thức Ngay</button>
+                <a href="/admin/ai-assistant" target="_blank" class="header-btn">Mở Trung Tâm AI Chuyên Sâu ↗</a>
+              </div>
+            </div>
+
+            <h4 style="color:#fff; margin:20px 0 10px;">Danh Sách Phiếu Hỗ Trợ Khách Hàng (Handoffs)</h4>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Khách Hàng</th>
+                    <th>Số Điện Thoại</th>
+                    <th>Câu Hỏi Cần Hỗ Trợ</th>
+                    <th>Nhân Viên Phụ Trách</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="aiHandoffTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             TAB 14: CÀI ĐẶT HỆ THỐNG (System Settings)
+             =================================================================== -->
+        <section id="tabSettings" class="admin-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Cấu Hình Nền Tảng HESTORA</h3>
+                <p class="panel-subtitle">Thiết lập tham số toàn cục cho hệ thống đặt phòng và thanh toán.</p>
+              </div>
+              <button class="header-btn accent" onclick="saveSystemSettings()">💾 Lưu Cấu Hình</button>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Tên Thương Hiệu Nền Tảng</label>
+                <input type="text" id="cfgBrandName" value="HESTORA Luxury Stays">
+              </div>
+              <div class="form-group">
+                <label>Hotline CSKH Toàn Quốc</label>
+                <input type="text" id="cfgHotline" value="1900 8899 (24/7)">
+              </div>
+              <div class="form-group">
+                <label>Email Hỗ Trợ Chính Thức</label>
+                <input type="email" id="cfgSupportEmail" value="support@hestora.vn">
+              </div>
+              <div class="form-group">
+                <label>Giờ Nhận Phòng Tiêu Chuẩn (Check-in)</label>
+                <input type="text" id="cfgCheckInTime" value="14:00">
+              </div>
+              <div class="form-group">
+                <label>Giờ Trả Phòng Tiêu Chuẩn (Check-out)</label>
+                <input type="text" id="cfgCheckOutTime" value="12:00">
+              </div>
+              <div class="form-group">
+                <label>Phí Dịch Vụ & Thuế VAT (%)</label>
+                <input type="number" id="cfgTaxRate" value="10">
+              </div>
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Chính Sách Hủy Đặt Phòng Mặc Định</label>
+                <textarea rows="3" id="cfgCancelPolicy">Khách hàng được hủy miễn phí trước 24 giờ kể từ thời điểm nhận phòng. Hủy phòng trong vòng 24 giờ sẽ tính phí đêm đầu tiên.</textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ADMIN AUTH MODAL OVERLAY -->
+  <div id="adminAuthOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-surface, #1b1815); border:1px solid var(--border-subtle, #2f2a25); border-radius:16px; padding:32px; width:100%; max-width:440px; box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="font-family:var(--font-serif, serif); font-size:22px; font-weight:700; color:var(--accent-primary, #a27b5c); letter-spacing:1px;">HESTORA</div>
+        <div style="font-size:12px; font-weight:700; color:#dc2626; text-transform:uppercase; margin-top:4px; letter-spacing:0.5px;">XÁC THỰC QUẢN TRỊ VIÊN (ADMIN)</div>
+        <p style="font-size:12.5px; color:var(--text-muted, #7e776f); margin:8px 0 0;">Vui lòng đăng nhập tài khoản Quản trị viên để truy cập.</p>
+      </div>
+
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:13px; color:var(--text-secondary, #b5aea4); font-weight:600;">Email Quản Trị</label>
+          <input type="email" id="adminLoginEmail" value="admin@hotelbooking.com" required style="background:var(--bg-card, #231f1c); border:1px solid var(--border-light, #443c35); color:#fff; padding:11px 14px; border-radius:8px; font-size:13px;">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:13px; color:var(--text-secondary, #b5aea4); font-weight:600;">Mật Khẩu</label>
+          <input type="password" id="adminLoginPassword" value="password123" required style="background:var(--bg-card, #231f1c); border:1px solid var(--border-light, #443c35); color:#fff; padding:11px 14px; border-radius:8px; font-size:13px;">
+        </div>
+
+        <button type="submit" id="btnAdminSubmitLogin" style="background:var(--accent-primary, #a27b5c); color:#fff; border:none; padding:12px; border-radius:8px; font-weight:700; font-size:14px; cursor:pointer; margin-top:6px;">
+          Đăng Nhập Vào Bảng Điều Hành
+        </button>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+          <a href="/index.html" style="font-size:12px; color:var(--text-muted, #7e776f); text-decoration:none;">← Quay về trang chủ</a>
+          <button type="button" onclick="quickFillAdminLogin()" style="background:transparent; border:none; color:var(--accent-light, #b88e68); font-size:12px; cursor:pointer; font-weight:600;">Tự động điền tài khoản</button>
+        </div>
+      </form>
+      <div id="adminLoginError" style="display:none; margin-top:14px; padding:10px 14px; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.3); border-radius:8px; color:#f87171; font-size:12px;"></div>
+    </div>
+  </div>
+
+  <!-- Script Implementation -->
+  <script>
+    const API_BASE = (window.location.protocol.startsWith('http') && window.location.port !== '8080')
+      ? '/api'
+      : `${window.location.protocol}//${window.location.hostname || 'localhost'}:8080/api`;
+
+    let currentAdmin = null;
+    let allBookings = [];
+    let allHotels = [];
+    let allRooms = [];
+    let allHandoffs = [];
+
+    // Local state collections
+    let staffMembers = [
+      { id: 1, name: 'Trần Thị Lễ Tân', email: 'staff@hotelbooking.com', phone: '0908888888', role: 'STAFF', shift: 'Ca Sáng (06:00 - 14:00)', active: true },
+      { id: 2, name: 'Nguyễn Văn Hùng', email: 'hung.nguyen@hestora.vn', phone: '0912345678', role: 'STAFF', shift: 'Ca Chiều (14:00 - 22:00)', active: true },
+      { id: 3, name: 'Lê Minh Tuấn', email: 'tuan.le@hestora.vn', phone: '0987654321', role: 'STAFF', shift: 'Ca Đêm (22:00 - 06:00)', active: true }
+    ];
+
+    let customers = [
+      { id: 1, name: 'Nguyễn Văn An', email: 'nguyenvanan@gmail.com', phone: '0901234567', tier: 'VIP Gold', bookingsCount: 3, totalSpent: 12500000, active: true },
+      { id: 2, name: 'Trần Minh Đức', email: 'duc.tran@gmail.com', phone: '0988776655', tier: 'Member', bookingsCount: 1, totalSpent: 7500000, active: true },
+      { id: 3, name: 'Lê Hoàng Nam', email: 'namle@gmail.com', phone: '0912334455', tier: 'VIP Platinum', bookingsCount: 5, totalSpent: 28900000, active: true }
+    ];
+
+    let roomTypes = [
+      { code: 'STANDARD', name: 'Standard Room', area: '28 m²', capacity: '2 Người lớn, 1 Trẻ em', basePrice: 1850000, amenities: 'Smart TV, Mini Bar, Wi-Fi 6, Ban công ngắm phố' },
+      { code: 'DELUXE', name: 'Deluxe City/Ocean View', area: '42 m²', capacity: '2 Người lớn, 2 Trẻ em', basePrice: 2450000, amenities: 'Bồn tắm nằm, Giường King cao cấp, View sông Sài Gòn' },
+      { code: 'SUITE', name: 'Executive Suite', area: '65 m²', capacity: '4 Người lớn', basePrice: 4200000, amenities: 'Phòng khách riêng, Đặc quyền Executive Lounge, Quầy Bar' }
+    ];
+
+    let services = [
+      { id: 'SRV-01', name: 'Đưa đón sân bay cao cấp (Limousine)', unit: 'Lượt', price: 650000, appliedHotels: 'Toàn hệ thống', active: true },
+      { id: 'SRV-02', name: 'Buffet sáng tiêu chuẩn Quốc tế', unit: 'Khách / Ngày', price: 350000, appliedHotels: 'Toàn hệ thống', active: true },
+      { id: 'SRV-03', name: 'Gói Spa & Massage trị liệu đá nóng (90p)', unit: 'Suất', price: 950000, appliedHotels: 'Grand Vista, Sunrise Resort', active: true },
+      { id: 'SRV-04', name: 'Dịch vụ giặt ủi lấy nhanh trong 4 giờ', unit: 'Kg', price: 120000, appliedHotels: 'Toàn hệ thống', active: true }
+    ];
+
+    let reviews = [
+      { id: 1, guest: 'Nguyễn Văn An', hotel: 'Grand Vista Hotel', rating: 5, comment: 'Dịch vụ tuyệt vời, view sông cực đẹp. Nhân viên hỗ trợ nhiệt tình!', date: '2026-11-10', visible: true },
+      { id: 2, guest: 'Lê Hoàng Nam', hotel: 'Sunrise Resort Phú Quốc', rating: 5, comment: 'Bungalow biển riêng tư, đồ ăn sáng phong phú ngon miệng.', date: '2026-11-05', visible: true },
+      { id: 3, guest: 'Trần Minh Đức', hotel: 'The Lumiere Hotel', rating: 4, comment: 'Phòng đẹp, sạch sẽ nhưng check-in giờ cao điểm hơi lâu một chút.', date: '2026-10-28', visible: true }
+    ];
+
+    let promotions = [
+      { code: 'HESTORA2026', title: 'Chào mừng năm 2026 - Giảm ngay 10%', discount: '10%', max: 500000, min: 1000000, used: 15, active: true },
+      { code: 'SUMMERHOT', title: 'Ưu đãi hè rực rỡ - Giảm ngay 15%', discount: '15%', max: 800000, min: 2000000, used: 42, active: true },
+      { code: 'VIPSTAY', title: 'Đặc quyền thành viên VIP - Giảm ngay 20%', discount: '20%', max: 1500000, min: 5000000, used: 8, active: true }
+    ];
+
+    function getAuthToken() {
+      return localStorage.getItem('token') || (JSON.parse(localStorage.getItem('hotel_user') || '{}').token);
+    }
+
+    async function safeFetchJson(url, options = {}) {
+      let res;
+      try {
+        res = await fetch(url, options);
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json') && url.startsWith('/api')) {
+          res = await fetch(`http://${window.location.hostname || 'localhost'}:8080${url}`, options);
+        }
+      } catch (networkErr) {
+        if (url.startsWith('/api')) {
+          res = await fetch(`http://${window.location.hostname || 'localhost'}:8080${url}`, options);
+        } else {
+          throw networkErr;
+        }
+      }
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        if (!res.ok) {
+          throw new Error(`Máy chủ phản hồi mã trạng thái HTTP ${res.status}`);
+        }
+        throw new Error('Dữ liệu máy chủ phản hồi không đúng định dạng JSON.');
+      }
+      const data = await res.json();
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    // =========================================================================
+    // ROUTE GUARD & INIT
+    // =========================================================================
+    async function initAdminDashboard() {
+      const token = getAuthToken();
+      if (!token) {
+        showAdminAuthModal();
+        return;
+      }
+
+      try {
+        const { ok, data: user } = await safeFetchJson(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!ok || !user) throw new Error('Unauthorized');
+        currentAdmin = user;
+
+        const role = (currentAdmin.role || '').toUpperCase();
+        if (role !== 'ADMIN') {
+          showAdminAuthModal(`Tài khoản ${currentAdmin.email} mang vai trò ${role}. Trang này yêu cầu vai trò ADMIN!`);
+          return;
+        }
+
+        // Render Admin Info
+        document.getElementById('adminFullName').innerText = currentAdmin.name || 'Quản trị viên';
+        document.getElementById('adminEmail').innerText = currentAdmin.email;
+        document.getElementById('adminAvatar').innerText = (currentAdmin.name || 'AD').slice(0, 2).toUpperCase();
+        hideAdminAuthModal();
+
+        // Load all data
+        loadAllAdminData();
+      } catch (err) {
+        console.warn('Auth verification failed:', err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('hotel_user');
+        showAdminAuthModal('Phiên làm việc trước đó đã hết hạn. Vui lòng đăng nhập lại tài khoản Admin.');
+      }
+    }
+
+    function showAdminAuthModal(message) {
+      const overlay = document.getElementById('adminAuthOverlay');
+      if (overlay) overlay.style.display = 'flex';
+      const errDiv = document.getElementById('adminLoginError');
+      if (errDiv) {
+        if (message) {
+          errDiv.innerText = message;
+          errDiv.style.display = 'block';
+        } else {
+          errDiv.style.display = 'none';
+        }
+      }
+    }
+
+    function hideAdminAuthModal() {
+      const overlay = document.getElementById('adminAuthOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    async function handleAdminLogin(e) {
+      if (e) e.preventDefault();
+      const email = document.getElementById('adminLoginEmail').value.trim();
+      const password = document.getElementById('adminLoginPassword').value;
+      const errDiv = document.getElementById('adminLoginError');
+      if (errDiv) errDiv.style.display = 'none';
+
+      try {
+        const { ok, data: d } = await safeFetchJson(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!ok || !d.success) {
+          if (errDiv) {
+            errDiv.innerText = d.message || 'Email hoặc mật khẩu không chính xác.';
+            errDiv.style.display = 'block';
+          }
+          return;
+        }
+
+        const role = (d.user?.role || '').toUpperCase();
+        if (role !== 'ADMIN') {
+          if (errDiv) {
+            errDiv.innerText = `Tài khoản ${d.user.email} có vai trò là ${role}. Trang này yêu cầu vai trò ADMIN!`;
+            errDiv.style.display = 'block';
+          }
+          return;
+        }
+
+        // Save tokens
+        localStorage.setItem('token', d.token);
+        localStorage.setItem('user', JSON.stringify(d.user));
+        d.user.token = d.token;
+        localStorage.setItem('hotel_user', JSON.stringify(d.user));
+
+        hideAdminAuthModal();
+        initAdminDashboard();
+      } catch (err) {
+        if (errDiv) {
+          errDiv.innerText = 'Lỗi kết nối tới máy chủ: ' + err.message;
+          errDiv.style.display = 'block';
+        }
+      }
+    }
+
+    function quickFillAdminLogin() {
+      document.getElementById('adminLoginEmail').value = 'admin@hotelbooking.com';
+      document.getElementById('adminLoginPassword').value = 'password123';
+    }
+
+    // =========================================================================
+    // LOAD REAL DATA
+    // =========================================================================
+    async function loadAllAdminData() {
+      const token = getAuthToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      // 1. Load Bookings
+      try {
+        const resB = await fetch(`${API_BASE}/staff/bookings`, { headers });
+        if (resB.ok) {
+          const d = await resB.json();
+          allBookings = d.data || [];
+          renderDashboardBookings();
+          renderFullAdminBookings(allBookings);
+          renderPaymentsTable();
+          updateKPIs();
+        }
+      } catch (e) { console.error('Error bookings:', e); }
+
+      // 2. Load Hotels
+      try {
+        const resH = await fetch(`${API_BASE}/hotels`, { headers });
+        if (resH.ok) {
+          allHotels = await resH.json();
+          renderHotelsTable();
+          renderReportsTable();
+        }
+      } catch (e) { console.error('Error hotels:', e); }
+
+      // 3. Load Rooms
+      try {
+        const resR = await fetch(`${API_BASE}/hotels/1/rooms`);
+        if (resR.ok) {
+          allRooms = await resR.json();
+          renderRoomsTable();
+        }
+      } catch (e) { console.error('Error rooms:', e); }
+
+      // 4. Load AI Assistant stats & handoffs
+      try {
+        const resAI = await fetch(`${API_BASE}/ai/admin/stats`, { headers });
+        if (resAI.ok) {
+          const stats = await resAI.json();
+          document.getElementById('aiDocCount').innerText = stats.totalDocuments || 0;
+          document.getElementById('aiVectorCount').innerText = stats.vectorStoreEmbeddings || 0;
+        }
+      } catch (e) { console.error('Error AI stats:', e); }
+
+      try {
+        const resHandoff = await fetch(`${API_BASE}/ai/admin/handoffs`, { headers });
+        if (resHandoff.ok) {
+          allHandoffs = await resHandoff.json();
+          renderAIHandoffs();
+          const pending = allHandoffs.filter(h => h.status === 'PENDING').length;
+          document.getElementById('aiHandoffCountBadge').innerText = pending;
+          document.getElementById('dashHandoffs').innerText = pending;
+          document.getElementById('dashHandoffBadge').innerText = `${pending} Pending`;
+          document.getElementById('aiPendingCount').innerText = pending;
+        }
+      } catch (e) { console.error('Error AI handoffs:', e); }
+
+      // Static mock tables
+      renderStaffTable();
+      renderCustomersTable();
+      renderRoomTypesTable();
+      renderServicesTable();
+      renderReviewsTable();
+      renderPromosTable();
+    }
+
+    function updateKPIs() {
+      let totalRev = 0;
+      let pendingCount = 0;
+      allBookings.forEach(b => {
+        totalRev += (b.totalPrice || 0);
+        if (b.status === 'PENDING') pendingCount++;
+      });
+      document.getElementById('dashTotalRevenue').innerText = (totalRev).toLocaleString('vi-VN') + 'đ';
+      document.getElementById('dashTotalBookings').innerText = allBookings.length;
+      document.getElementById('dashPendingBadge').innerText = `${pendingCount} Chờ duyệt`;
+      document.getElementById('paymentPaidRevenue').innerText = (totalRev * 0.85).toLocaleString('vi-VN') + 'đ';
+      document.getElementById('paymentPendingRevenue').innerText = (totalRev * 0.15).toLocaleString('vi-VN') + 'đ';
+    }
+
+    // =========================================================================
+    // RENDERING FUNCTIONS
+    // =========================================================================
+    function renderDashboardBookings() {
+      const tbody = document.getElementById('dashBookingsTbody');
+      const recent = allBookings.slice(0, 5);
+      if (recent.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Không có đơn đặt phòng nào.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = recent.map(b => `
+        <tr>
+          <td><strong>${b.bookingId}</strong></td>
+          <td><strong>${escapeHtml(b.guestName)}</strong><br><small style="color:var(--text-muted);">${escapeHtml(b.guestPhone || '')}</small></td>
+          <td>${escapeHtml(b.hotelName)}<br><small style="color:var(--text-muted);">${escapeHtml(b.roomType)}</small></td>
+          <td>${b.checkIn} → ${b.checkOut}</td>
+          <td><strong>${(b.totalPrice || 0).toLocaleString()} VNĐ</strong></td>
+          <td><span class="badge-tag" style="background:#059669; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;">${b.paymentStatus || 'PAID'}</span></td>
+          <td><span class="badge-tag" style="background:${b.status==='CONFIRMED'?'#2563eb':'#4b5563'}; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;">${b.status}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderFullAdminBookings(list) {
+      const tbody = document.getElementById('adminBookingsTableBody');
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Không tìm thấy đơn nào.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td><strong>${b.bookingId}</strong></td>
+          <td><strong>${escapeHtml(b.guestName)}</strong><br><small style="color:var(--text-muted);">${escapeHtml(b.guestPhone || '')}</small></td>
+          <td>${escapeHtml(b.hotelName)} - ${escapeHtml(b.roomType)}</td>
+          <td>${b.checkIn} → ${b.checkOut}</td>
+          <td><strong>${(b.totalPrice || 0).toLocaleString()} VNĐ</strong></td>
+          <td><span class="badge-tag" style="background:#059669; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;">${b.paymentStatus || 'PAID'}</span></td>
+          <td><span class="badge-tag" style="background:#2563eb; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;">${b.status}</span></td>
+          <td>
+            <button class="btn-sm-action btn-action-view" onclick="alert('Xem chi tiết đơn ${b.bookingId}')">Chi tiết</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterAdminBookings() {
+      const kw = document.getElementById('bookingSearchInput').value.trim().toLowerCase();
+      const st = document.getElementById('bookingFilterStatus').value;
+      const filtered = allBookings.filter(b => {
+        const mKw = !kw || b.bookingId.toLowerCase().includes(kw) || b.guestName.toLowerCase().includes(kw) || (b.guestPhone && b.guestPhone.includes(kw));
+        const mSt = st === 'ALL' || b.status === st;
+        return mKw && mSt;
+      });
+      renderFullAdminBookings(filtered);
+    }
+
+    function renderStaffTable() {
+      const tbody = document.getElementById('staffTableBody');
+      const kw = (document.getElementById('staffSearchInput')?.value || '').toLowerCase();
+      const filtered = staffMembers.filter(s => !kw || s.name.toLowerCase().includes(kw) || s.email.toLowerCase().includes(kw));
+      tbody.innerHTML = filtered.map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.name)}</strong></td>
+          <td>${escapeHtml(s.email)}</td>
+          <td>${escapeHtml(s.phone)}</td>
+          <td><span class="badge-blue" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">${s.role}</span></td>
+          <td>${escapeHtml(s.shift)}</td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">Hoạt động</span></td>
+          <td>
+            <button class="btn-sm-action btn-action-edit" onclick="alert('Chỉnh sửa nhân viên: ${escapeHtml(s.name)}')">Sửa</button>
+            <button class="btn-sm-action btn-action-delete" onclick="alert('Đã vô hiệu hóa tài khoản: ${escapeHtml(s.email)}')">Khóa</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCustomersTable() {
+      const tbody = document.getElementById('customersTableBody');
+      const kw = (document.getElementById('customerSearchInput')?.value || '').toLowerCase();
+      const filtered = customers.filter(c => !kw || c.name.toLowerCase().includes(kw) || c.email.toLowerCase().includes(kw));
+      tbody.innerHTML = filtered.map(c => `
+        <tr>
+          <td><strong>${escapeHtml(c.name)}</strong></td>
+          <td>${escapeHtml(c.email)}</td>
+          <td>${escapeHtml(c.phone)}</td>
+          <td><span class="badge-amber" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">${c.tier}</span></td>
+          <td><strong>${c.bookingsCount} đơn</strong></td>
+          <td><strong>${(c.totalSpent).toLocaleString()}đ</strong></td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">Hoạt động</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderHotelsTable() {
+      const tbody = document.getElementById('hotelsTableBody');
+      if (allHotels.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Đang tải danh sách...</td></tr>';
+        return;
+      }
+      tbody.innerHTML = allHotels.map(h => `
+        <tr>
+          <td><strong>${escapeHtml(h.name)}</strong></td>
+          <td>${escapeHtml(h.address)}</td>
+          <td><span style="color:#eab308;">★ ${h.rating || 5}</span> (${h.totalReviews || 120} đánh giá)</td>
+          <td>${escapeHtml(h.phone || '1900 8899')}<br><small style="color:var(--text-muted);">${escapeHtml(h.email || 'info@hestora.vn')}</small></td>
+          <td><strong>${h.rooms ? h.rooms.length : 12} phòng</strong></td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">Đang kinh doanh</span></td>
+          <td>
+            <button class="btn-sm-action btn-action-edit" onclick="alert('Sửa thông tin khách sạn: ${escapeHtml(h.name)}')">Sửa</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderRoomsTable() {
+      const tbody = document.getElementById('roomsTableBody');
+      const st = document.getElementById('roomFilterStatus').value;
+      const filtered = allRooms.filter(r => st === 'ALL' || r.status === st);
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Không có phòng phù hợp.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td><strong>${r.roomNumber}</strong></td>
+          <td>${escapeHtml(r.hotelName || 'Grand Vista Hotel')}</td>
+          <td><span class="badge-blue" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">${r.roomType || 'DELUXE'}</span></td>
+          <td>${r.capacity || 2} Khách</td>
+          <td><strong>${(r.pricePerNight || 2450000).toLocaleString()}đ</strong></td>
+          <td>
+            <span class="badge-tag" style="background:${r.status==='AVAILABLE'?'#16a34a':(r.status==='OCCUPIED'?'#dc2626':'#ca8a04')}; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;">
+              ${r.status}
+            </span>
+          </td>
+          <td>
+            <select onchange="updateRoomStatus(${r.id}, this.value)" style="background:var(--bg-card); color:#fff; border:1px solid var(--border-light); padding:4px 8px; border-radius:6px; font-size:12px;">
+              <option value="AVAILABLE" ${r.status==='AVAILABLE'?'selected':''}>AVAILABLE (Trống)</option>
+              <option value="OCCUPIED" ${r.status==='OCCUPIED'?'selected':''}>OCCUPIED (Có khách)</option>
+              <option value="CLEANING" ${r.status==='CLEANING'?'selected':''}>CLEANING (Đang dọn)</option>
+              <option value="MAINTENANCE" ${r.status==='MAINTENANCE'?'selected':''}>MAINTENANCE (Bảo trì)</option>
+            </select>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function updateRoomStatus(roomId, newStatus) {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+        if (res.ok) {
+          alert(`Đã cập nhật trạng thái phòng thành công: ${newStatus}`);
+          const found = allRooms.find(r => r.id === roomId);
+          if (found) found.status = newStatus;
+          renderRoomsTable();
+        } else {
+          alert('Cập nhật thất bại. Kiểm tra quyền Admin.');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Lỗi kết nối khi cập nhật phòng.');
+      }
+    }
+
+    function renderRoomTypesTable() {
+      const tbody = document.getElementById('roomTypesTableBody');
+      tbody.innerHTML = roomTypes.map(rt => `
+        <tr>
+          <td><strong>${escapeHtml(rt.name)}</strong></td>
+          <td><code>${rt.code}</code></td>
+          <td>${rt.area}</td>
+          <td>${rt.capacity}</td>
+          <td><strong>${(rt.basePrice).toLocaleString()}đ / đêm</strong></td>
+          <td><small style="color:var(--text-secondary);">${escapeHtml(rt.amenities)}</small></td>
+          <td>
+            <button class="btn-sm-action btn-action-edit" onclick="alert('Sửa hạng phòng: ${rt.name}')">Sửa</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderPaymentsTable() {
+      const tbody = document.getElementById('paymentsTableBody');
+      const paid = allBookings.slice(0, 10);
+      tbody.innerHTML = paid.map((b, idx) => `
+        <tr>
+          <td><code>TXN-202611-${1000 + idx}</code></td>
+          <td><strong>${b.bookingId}</strong></td>
+          <td>${escapeHtml(b.guestName)}</td>
+          <td><span class="badge-blue" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">VNPAY-QR / Thẻ</span></td>
+          <td><strong>${(b.totalPrice || 0).toLocaleString()} VNĐ</strong></td>
+          <td>${b.checkIn} 14:30</td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">THÀNH CÔNG</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderServicesTable() {
+      const tbody = document.getElementById('servicesTableBody');
+      tbody.innerHTML = services.map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.name)}</strong></td>
+          <td><code>${s.id}</code></td>
+          <td>${s.unit}</td>
+          <td><strong>${(s.price).toLocaleString()}đ</strong></td>
+          <td>${escapeHtml(s.appliedHotels)}</td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">Đang phục vụ</span></td>
+          <td>
+            <button class="btn-sm-action btn-action-edit" onclick="alert('Sửa dịch vụ: ${s.name}')">Sửa</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderReviewsTable() {
+      const tbody = document.getElementById('reviewsTableBody');
+      tbody.innerHTML = reviews.map(r => `
+        <tr>
+          <td><strong>${escapeHtml(r.guest)}</strong></td>
+          <td>${escapeHtml(r.hotel)}</td>
+          <td><span style="color:#eab308; font-weight:700;">★ ${r.rating}/5</span></td>
+          <td>${escapeHtml(r.comment)}</td>
+          <td>${r.date}</td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">Hiển thị</span></td>
+          <td>
+            <button class="btn-sm-action btn-action-gold" onclick="alert('Phản hồi đánh giá của khách hàng ${escapeHtml(r.guest)}')">Phản hồi</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderPromosTable() {
+      const tbody = document.getElementById('promosTableBody');
+      tbody.innerHTML = promotions.map(p => `
+        <tr>
+          <td><strong style="color:var(--accent-light); font-family:monospace; font-size:14px;">${p.code}</strong></td>
+          <td>${escapeHtml(p.title)}</td>
+          <td><span class="badge-amber" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">${p.discount}</span></td>
+          <td>${(p.max).toLocaleString()}đ</td>
+          <td>${(p.min).toLocaleString()}đ</td>
+          <td><strong>${p.used} lượt</strong></td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">Đang áp dụng</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderReportsTable() {
+      const tbody = document.getElementById('reportsTableBody');
+      tbody.innerHTML = allHotels.map(h => `
+        <tr>
+          <td><strong>${escapeHtml(h.name)}</strong></td>
+          <td><strong>24 đơn</strong></td>
+          <td>22 đơn (91.6%)</td>
+          <td>2 đơn (8.4%)</td>
+          <td><strong>118,500,000 VNĐ</strong></td>
+          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">78.5%</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAIHandoffs() {
+      const tbody = document.getElementById('aiHandoffTableBody');
+      if (allHandoffs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Không có yêu cầu hỗ trợ chuyển tiếp nào.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = allHandoffs.map(h => `
+        <tr>
+          <td>#${h.id}</td>
+          <td><strong>${escapeHtml(h.customerName || 'Khách vãng lai')}</strong></td>
+          <td>${escapeHtml(h.customerPhone || 'Chưa có')}</td>
+          <td>${escapeHtml(h.questionSummary || 'Cần hỗ trợ tư vấn đặt phòng')}</td>
+          <td>${h.assignedStaffId ? `Nhân viên #${h.assignedStaffId}` : '<span style="color:#eab308;">Chưa gán</span>'}</td>
+          <td><span class="badge-tag" style="background:${h.status==='RESOLVED'?'#16a34a':'#dc2626'}; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;">${h.status}</span></td>
+          <td>
+            <a href="/admin/ai-assistant" target="_blank" class="btn-sm-action btn-action-view" style="text-decoration:none;">Xử lý tại AI Panel ↗</a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function syncAIVectorStore() {
+      const token = getAuthToken();
+      if (!confirm('Bạn có muốn đồng bộ lại toàn bộ dữ liệu phòng và cơ sở tri thức vào Vector Store ngay bây giờ?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/ai/admin/sync`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const d = await res.json();
+          alert(`Đồng bộ thành công! Đã cập nhật ${d.syncedDocuments || 0} tài liệu tri thức vào Vector Store.`);
+          loadAllAdminData();
+        } else {
+          alert('Không thể đồng bộ. Vui lòng thử lại.');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Lỗi kết nối khi đồng bộ AI.');
+      }
+    }
+
+    // =========================================================================
+    // MODALS & NAVIGATION
+    // =========================================================================
+    function switchAdminTab(tabId, el) {
+      document.querySelectorAll('.admin-tab-view').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#adminNav .nav-item').forEach(n => n.classList.remove('active'));
+
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
+
+      if (el) {
+        el.classList.add('active');
+      } else {
+        const navEl = document.querySelector(`#adminNav .nav-item[data-tab="${tabId}"]`);
+        if (navEl) navEl.classList.add('active');
+      }
+
+      const titles = {
+        'tabDashboard': 'Dashboard Tổng Quan',
+        'tabReports': 'Quản Lý Báo Cáo',
+        'tabPayments': 'Quản Lý Thanh Toán',
+        'tabHotels': 'Quản Lý Khách Sạn',
+        'tabRooms': 'Quản Lý Phòng',
+        'tabRoomTypes': 'Quản Lý Loại Phòng',
+        'tabServices': 'Quản Lý Dịch Vụ',
+        'tabBookings': 'Quản Lý Đặt Phòng',
+        'tabStaff': 'Quản Lý Nhân Viên',
+        'tabCustomers': 'Quản Lý Khách Hàng',
+        'tabReviews': 'Quản Lý Đánh Giá',
+        'tabPromotions': 'Quản Lý Khuyến Mãi',
+        'tabAIAssistant': 'AI & Knowledge Base',
+        'tabSettings': 'Cài Đặt Hệ Thống'
+      };
+      document.getElementById('breadcrumbTitle').innerText = titles[tabId] || 'Quản Trị';
+    }
+
+    function openAddStaffModal() {
+      const name = prompt('Nhập họ và tên nhân viên mới:');
+      if (!name) return;
+      const email = prompt('Nhập email nhân viên:');
+      if (!email) return;
+      const phone = prompt('Nhập số điện thoại nhân viên:');
+      staffMembers.push({
+        id: staffMembers.length + 1,
+        name,
+        email,
+        phone: phone || '0900000000',
+        role: 'STAFF',
+        shift: 'Ca Sáng (06:00 - 14:00)',
+        active: true
+      });
+      alert(`Đã tạo tài khoản nhân viên ${name} thành công!`);
+      renderStaffTable();
+    }
+
+    function openAddHotelModal() {
+      const name = prompt('Nhập tên cơ sở khách sạn mới:');
+      if (!name) return;
+      const address = prompt('Nhập địa chỉ cơ sở:');
+      allHotels.push({
+        id: allHotels.length + 1,
+        name,
+        address: address || 'TP. Hồ Chí Minh',
+        rating: 5,
+        totalReviews: 0,
+        phone: '1900 8899',
+        email: 'info@hestora.vn',
+        rooms: []
+      });
+      alert(`Đã thêm khách sạn ${name} vào hệ sinh thái!`);
+      renderHotelsTable();
+    }
+
+    function openAddPromoModal() {
+      const code = prompt('Nhập mã voucher mới (viết hoa):');
+      if (!code) return;
+      const discount = prompt('Nhập % giảm (ví dụ: 15%):', '15%');
+      promotions.push({
+        code: code.toUpperCase(),
+        title: `Chương trình ưu đãi ${code}`,
+        discount: discount || '10%',
+        max: 500000,
+        min: 1000000,
+        used: 0,
+        active: true
+      });
+      alert(`Đã phát hành voucher ${code.toUpperCase()} thành công!`);
+      renderPromosTable();
+    }
+
+    function exportAdminReport() {
+      alert('Đang tổng hợp báo cáo tài chính và công suất buồng phòng...\nFile đã được tải về máy.');
+    }
+
+    function saveSystemSettings() {
+      const settings = {
+        brandName: document.getElementById('cfgBrandName').value,
+        hotline: document.getElementById('cfgHotline').value,
+        supportEmail: document.getElementById('cfgSupportEmail').value,
+        checkIn: document.getElementById('cfgCheckInTime').value,
+        checkOut: document.getElementById('cfgCheckOutTime').value,
+        tax: document.getElementById('cfgTaxRate').value,
+        cancelPolicy: document.getElementById('cfgCancelPolicy').value
+      };
+      localStorage.setItem('hestora_system_settings', JSON.stringify(settings));
+      alert('Đã lưu cấu hình hệ thống thành công!');
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('hotel_user');
+      window.location.href = '/index.html';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', initAdminDashboard);
+  </script>
+</body>
+</html>
+

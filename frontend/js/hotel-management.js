@@ -137,7 +137,8 @@
     tabBookings: 'Đơn đặt phòng',
     tabPromotions: 'Mã khuyến mãi',
     tabUsers: 'Người dùng & Quyền',
-    tabSupport: 'Hỗ trợ CSKH 24/7'
+    tabSupport: 'Hỗ trợ CSKH 24/7',
+    tabAIChatbot: 'Trợ lý AI & Tri thức'
   };
 
   function switchTab(tabId) {
@@ -152,6 +153,7 @@
     if (tabId === 'tabPromotions') renderPromotions();
     if (tabId === 'tabUsers') renderUsers();
     if (tabId === 'tabSupport') renderSupport();
+    if (tabId === 'tabAIChatbot') renderAIChatbotTab();
   }
 
   tabLinks.forEach(link => {
@@ -747,6 +749,129 @@
       localStorage.setItem('hestora_managed_supports_v1', JSON.stringify(supports));
       renderSupport();
       notify(`Yêu cầu hỗ trợ ${s.id} đã được giải quyết xong.`);
+    }
+  });
+
+  /* =========================================================================
+     TAB 8: QUẢN TRỊ AI HOTEL ASSISTANT & KNOWLEDGE BASE
+     ========================================================================= */
+  async function renderAIChatbotTab() {
+    const token = signedInUser?.token || '';
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    // 1. Fetch AI Metrics
+    try {
+      const resStats = await fetch('http://localhost:8080/api/ai/admin/stats', { headers });
+      if (resStats.ok) {
+        const stats = await resStats.json();
+        const elConv = document.getElementById('aiStatConversations');
+        const elMsg = document.getElementById('aiStatMessages');
+        const elDoc = document.getElementById('aiStatDocuments');
+        const elHandoff = document.getElementById('aiStatHandoffs');
+        if (elConv) elConv.textContent = stats.totalConversations || 0;
+        if (elMsg) elMsg.textContent = stats.totalMessages || 0;
+        if (elDoc) elDoc.textContent = stats.totalDocuments || 0;
+        if (elHandoff) elHandoff.textContent = stats.pendingHandoffs || 0;
+      }
+    } catch (err) {
+      console.warn('Cannot fetch AI stats:', err);
+    }
+
+    // 2. Fetch Knowledge Base Documents
+    try {
+      const resDocs = await fetch('http://localhost:8080/api/ai/admin/documents', { headers });
+      const docRows = document.getElementById('aiDocRows');
+      if (docRows) {
+        if (resDocs.ok) {
+          const docs = await resDocs.json();
+          docRows.innerHTML = docs.map(d => `
+            <tr>
+              <td>#${d.id}</td>
+              <td><strong>${escapeHtml(d.title)}</strong></td>
+              <td><span class="badge-status info">${escapeHtml(d.category)}</span></td>
+              <td>${escapeHtml(d.sourceType || 'MANUAL')}</td>
+              <td>${d.chunkCount || 1} chunks</td>
+              <td><span class="badge-status success">${escapeHtml(d.status || 'INDEXED')}</span></td>
+            </tr>
+          `).join('');
+        } else {
+          docRows.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">Chưa thể tải danh sách tài liệu. Đăng nhập ADMIN để xem.</td></tr>';
+        }
+      }
+    } catch (err) {
+      console.warn('Cannot fetch AI docs:', err);
+    }
+
+    // 3. Fetch Handoff Requests
+    try {
+      const resHandoffs = await fetch('http://localhost:8080/api/ai/admin/handoffs', { headers });
+      const handoffRows = document.getElementById('aiHandoffRows');
+      if (handoffRows) {
+        if (resHandoffs.ok) {
+          const list = await resHandoffs.json();
+          if (list.length === 0) {
+            handoffRows.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b;">Hiện không có yêu cầu hỗ trợ trực tiếp nào.</td></tr>';
+          } else {
+            handoffRows.innerHTML = list.map(h => `
+              <tr>
+                <td>#${h.id}</td>
+                <td><strong>${escapeHtml(h.customerName || 'Khách vãng lai')}</strong></td>
+                <td>${escapeHtml(h.customerPhone || 'Chưa cung cấp')}</td>
+                <td>${escapeHtml(h.customerEmail || 'Chưa cung cấp')}</td>
+                <td>${escapeHtml(h.questionSummary || '')}</td>
+                <td><span class="badge-status ${h.status === 'RESOLVED' ? 'success' : 'warning'}">${h.status === 'RESOLVED' ? 'Đã xử lý' : 'Đang chờ'}</span></td>
+                <td>
+                  ${h.status !== 'RESOLVED' ? `<button class="primary" style="padding:4px 8px; font-size:11px;" onclick="resolveAIHandoff(${h.id})">Đánh dấu xử lý</button>` : '<span style="color:#166534; font-size:12px;">✓ Hoàn tất</span>'}
+                </td>
+              </tr>
+            `).join('');
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Cannot fetch AI handoffs:', err);
+    }
+  }
+
+  // Global resolve handoff function
+  window.resolveAIHandoff = async function(id) {
+    const token = signedInUser?.token || '';
+    try {
+      const res = await fetch(`http://localhost:8080/api/ai/admin/handoffs/${id}/resolve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ note: 'Đã liên hệ xử lý cho khách hàng' })
+      });
+      if (res.ok) {
+        notify('Đã cập nhật trạng thái phiếu hỗ trợ thành công.');
+        renderAIChatbotTab();
+      }
+    } catch (err) {
+      alert('Không thể cập nhật phiếu hỗ trợ lúc này.');
+    }
+  };
+
+  // Sync Knowledge Base Button
+  document.getElementById('btnSyncAIKnowledge')?.addEventListener('click', async () => {
+    const token = signedInUser?.token || '';
+    notify('Đang đồng bộ dữ liệu từ Database vào Knowledge Base...');
+    try {
+      const res = await fetch('http://localhost:8080/api/ai/admin/sync', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        notify(`Đồng bộ thành công ${data.syncedDocuments || 0} tài liệu tri thức.`);
+        renderAIChatbotTab();
+      } else {
+        notify('Cần đăng nhập tài khoản ADMIN để đồng bộ tri thức.');
+      }
+    } catch (err) {
+      notify('Lỗi kết nối khi đồng bộ tri thức.');
     }
   });
 
