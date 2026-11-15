@@ -154,7 +154,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(credentials),
-          signal: AbortSignal.timeout(1500)
+          signal: AbortSignal.timeout(15000)
         });
         if (!response.ok) {
           const err = await response.json().catch(() => ({}));
@@ -164,7 +164,7 @@
           return { success: false, message };
         }
         const result = await response.json();
-        if (result.success && result.user) {
+        if (type === 'login' && result.success && result.user && result.token) {
           result.user.token = result.token;
           localStorage.setItem('hotel_user', JSON.stringify(result.user));
           localStorage.setItem('token', result.token);
@@ -350,15 +350,16 @@
           headers['Authorization'] = `Bearer ${state.currentUser.token}`;
         }
         const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
-          method: 'POST',
+          method: 'PUT',
           headers,
           body: JSON.stringify({ oldPassword, newPassword }),
           signal: AbortSignal.timeout(1500)
         });
-        if (response.ok) return await response.json();
-        throw new Error('Change password failed');
+        const result = await response.json().catch(() => ({}));
+        if (response.ok) return result;
+        return { success: false, message: result.message || 'Không thể đổi mật khẩu, vui lòng thử lại!' };
       } catch {
-        return { success: true, message: 'Mật khẩu đã được cập nhật thành công!' };
+        return { success: false, message: 'Không kết nối được máy chủ. Vui lòng thử lại.' };
       }
     }
   };
@@ -453,6 +454,13 @@
     initPasswordModal();
     await loadFeaturedHotels();
     updateUserUI();
+    const query = new URLSearchParams(window.location.search);
+    const recoveryEmail = query.get('email');
+    if (recoveryEmail) {
+      const loginEmail = document.getElementById('loginEmail');
+      if (loginEmail) loginEmail.value = recoveryEmail;
+    }
+    if (query.get('auth') === 'login') openAuthModal('login');
   });
 
   /* ==========================================================================
@@ -553,7 +561,7 @@
           menu.remove();
           loginBtn.setAttribute('aria-expanded', 'false');
           if (action === 'bookings') openMyBookingsModal();
-          if (action === 'password') openPasswordModal();
+          if (action === 'password') window.location.href = 'change-password.html';
           if (action === 'admin') window.location.href = '/admin/dashboard';
           if (action === 'staff') window.location.href = '/staff/dashboard';
           if (action === 'logout') {
@@ -1428,6 +1436,23 @@
       if (e.target === modal) modal.classList.remove('active');
     });
 
+    document.getElementById('toggleLoginPassword')?.addEventListener('click', (e) => {
+      const button = e.currentTarget;
+      const password = document.getElementById('loginPassword');
+      const show = password.type === 'password';
+      password.type = show ? 'text' : 'password';
+      button.setAttribute('aria-pressed', String(show));
+      button.setAttribute('aria-label', show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+      button.classList.toggle('is-revealing', show);
+    });
+
+    document.querySelector('.login-forgot-link')?.addEventListener('click', (event) => {
+      const email = document.getElementById('loginEmail')?.value.trim();
+      if (!email) return;
+      event.preventDefault();
+      window.location.href = `forgot-password.html?email=${encodeURIComponent(email)}`;
+    });
+
     tabLogin?.addEventListener('click', () => {
       tabLogin.classList.add('active');
       tabLogin.setAttribute('aria-selected', 'true');
@@ -1448,42 +1473,75 @@
 
     formLogin?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submitButton = formLogin.querySelector('button[type="submit"]');
+      if (submitButton?.disabled) return;
       const email = document.getElementById('loginEmail')?.value;
       const password = document.getElementById('loginPassword')?.value;
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.dataset.originalText = submitButton.textContent;
+        submitButton.textContent = 'Đang đăng nhập...';
+      }
+      try {
+        const res = await HotelAPI.authUser('login', { email, password });
+        if (res.success) {
+          state.currentUser = res.user;
+          updateUserUI();
+          modal?.classList.remove('active');
+          showToast(`Đăng nhập thành công! Chào mừng ${res.user.name}`);
 
-      const res = await HotelAPI.authUser('login', { email, password });
-      if (res.success) {
-        state.currentUser = res.user;
-        updateUserUI();
-        modal?.classList.remove('active');
-        showToast(`Đăng nhập thành công! Chào mừng ${res.user.name}`);
-        
-        const role = String(res.user.role || '').toUpperCase();
-        if (role === 'ADMIN') {
-          setTimeout(() => { window.location.href = '/admin/dashboard'; }, 400);
-          return;
-        } else if (role === 'STAFF') {
-          setTimeout(() => { window.location.href = '/staff/dashboard'; }, 400);
-          return;
+          const role = String(res.user.role || '').toUpperCase();
+          if (role === 'ADMIN') {
+            setTimeout(() => { window.location.href = '/admin/dashboard'; }, 400);
+            return;
+          } else if (role === 'STAFF') {
+            setTimeout(() => { window.location.href = '/staff/dashboard'; }, 400);
+            return;
+          }
+
+          const next = new URLSearchParams(window.location.search).get('next');
+          if (next === 'change-password.html') window.location.href = next;
+          if (document.getElementById('myBookingsModal')?.classList.contains('active')) renderMyBookingsList();
+        } else showToast(res.message || 'Mật khẩu không đúng. Thử lại hoặc chọn “Quên mật khẩu?” nếu bạn không nhớ mật khẩu.', 'error');
+      } finally {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = submitButton.dataset.originalText || 'Đăng nhập ngay';
+          delete submitButton.dataset.originalText;
         }
-
-        if (document.getElementById('myBookingsModal')?.classList.contains('active')) renderMyBookingsList();
-      } else showToast(res.message || 'Email hoặc mật khẩu không đúng.', 'error');
+      }
     });
 
     formRegister?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submitButton = formRegister.querySelector('button[type="submit"]');
+      if (submitButton?.disabled) return;
       const name = document.getElementById('regName')?.value;
       const email = document.getElementById('regEmail')?.value;
       const password = document.getElementById('regPassword')?.value;
-
-      const res = await HotelAPI.authUser('register', { name, email, password });
-      if (res.success) {
-        state.currentUser = res.user;
-        updateUserUI();
-        modal?.classList.remove('active');
-        showToast(`Đăng ký tài khoản thành công! Chào mừng ${res.user.name}`);
-      } else showToast(res.message || 'Chưa thể tạo tài khoản. Kiểm tra thông tin và thử lại.', 'error');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.dataset.originalText = submitButton.textContent;
+        submitButton.textContent = 'Đang tạo tài khoản...';
+      }
+      try {
+        const res = await HotelAPI.authUser('register', { name, email, password });
+        if (res.success) {
+          state.currentUser = null;
+          const loginEmail = document.getElementById('loginEmail');
+          const loginPassword = document.getElementById('loginPassword');
+          if (loginEmail) loginEmail.value = res.user?.email || email;
+          if (loginPassword) loginPassword.value = '';
+          openAuthModal('login');
+          showToast('Đăng ký thành công! Đăng nhập bằng mật khẩu bạn vừa tạo. Nếu quên, chọn “Quên mật khẩu?”.', 'success');
+        } else showToast(res.message || 'Chưa thể tạo tài khoản. Kiểm tra thông tin và thử lại.', 'error');
+      } finally {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = submitButton.dataset.originalText || 'Tạo tài khoản';
+          delete submitButton.dataset.originalText;
+        }
+      }
     });
   }
 
@@ -1491,12 +1549,13 @@
     const modal = document.getElementById('authModal');
     if (!modal) return;
     modal.classList.add('active');
-
-    if (mode === 'register') {
-      document.getElementById('tabRegister')?.click();
-    } else {
-      document.getElementById('tabLogin')?.click();
-    }
+    const isRegister = mode === 'register';
+    const loginForm = document.getElementById('formLogin');
+    const registerForm = document.getElementById('formRegister');
+    const title = modal.querySelector('.modal-title');
+    if (loginForm) loginForm.style.display = isRegister ? 'none' : 'block';
+    if (registerForm) registerForm.style.display = isRegister ? 'block' : 'none';
+    if (title) title.textContent = isRegister ? 'Tạo tài khoản Hestora' : 'Đăng nhập Hestora';
   }
 
   /* ==========================================================================

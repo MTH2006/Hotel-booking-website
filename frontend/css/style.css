@@ -307,12 +307,9 @@ input, select {
 .hero-backdrop {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(18, 28, 20, 0.75) 0%,
-    rgba(18, 28, 20, 0.45) 55%,
-    rgba(18, 28, 20, 0.20) 100%
-  );
+  background:
+    linear-gradient(90deg, rgba(8, 9, 10, .78) 0%, rgba(8, 9, 10, .62) 34%, rgba(8, 9, 10, .34) 62%, rgba(8, 9, 10, .12) 100%),
+    rgba(8, 9, 10, .08);
   z-index: 1;
 }
 
@@ -323,7 +320,7 @@ input, select {
 }
 
 .hero-content {
-  max-width: 660px;
+  max-width: 840px;
   margin-bottom: 48px;
 }
 
@@ -339,7 +336,7 @@ input, select {
 
 .hero-title {
   font-family: var(--font-serif);
-  font-size: 3.4rem;
+  font-size: clamp(2.8rem, 3.7vw, 3.4rem);
   line-height: 1.15;
   font-weight: 600;
   color: #FFFFFF;
@@ -932,7 +929,7 @@ input, select {
 
 .cta-banner {
   position: relative;
-  min-height: 290px;
+  min-height: 320px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background-size: cover;
@@ -947,10 +944,11 @@ input, select {
   inset: 0;
   background: linear-gradient(
     90deg,
-    rgba(18, 15, 13, 0.95) 0%,
-    rgba(18, 15, 13, 0.8) 55%,
-    rgba(18, 15, 13, 0.4) 100%
-  );
+    rgba(8, 9, 10, 0.78) 0%,
+    rgba(8, 9, 10, 0.62) 34%,
+    rgba(8, 9, 10, 0.34) 62%,
+    rgba(8, 9, 10, 0.12) 100%
+  ), rgba(8, 9, 10, 0.08);
   z-index: 1;
 }
 
@@ -973,43 +971,46 @@ input, select {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--accent-light);
+  color: #e2c184;
   margin-bottom: 12px;
   display: block;
 }
 
 .cta-title {
   font-family: var(--font-serif);
-  font-size: 2.3rem;
+  font-size: clamp(2rem, 2.8vw, 2.65rem);
   font-weight: 500;
-  color: var(--text-primary);
+  color: #fffaf1;
   margin-bottom: 12px;
   line-height: 1.2;
+  text-shadow: 0 2px 18px rgba(0,0,0,.38);
 }
 
 .cta-desc {
   font-size: 0.94rem;
-  color: var(--text-secondary);
+  color: #e6e1d9;
   margin-bottom: 24px;
+  line-height: 1.65;
+  text-shadow: 0 1px 12px rgba(0,0,0,.45);
 }
 
 .btn-cta {
   padding: 12px 26px;
-  background: var(--accent-primary);
-  color: #FFFFFF;
+  background: linear-gradient(115deg, #dfc28b, #bd965d);
+  color: #211a10;
   border-radius: var(--radius-sm);
   font-size: 0.92rem;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 16px rgba(162, 123, 92, 0.35);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .28), 0 3px 15px rgba(205, 168, 104, .23);
 }
 
 .btn-cta:hover {
-  background: var(--accent-hover);
+  background: linear-gradient(115deg, #ecd3a2, #d0aa70);
   transform: translateY(-2px);
-  box-shadow: 0 6px 22px rgba(162, 123, 92, 0.5);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .32), 0 4px 20px rgba(205, 168, 104, .32);
 }
 
 .btn-cta svg {
@@ -1028,17 +1029,18 @@ input, select {
 
 .cursive-quote {
   font-family: var(--font-cursive);
-  font-size: 3.5rem;
+  font-size: clamp(2.65rem, 3.6vw, 3.2rem);
   line-height: 1.05;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 250, 241, 0.96);
   position: relative;
   display: inline-block;
   user-select: none;
+  text-shadow: 0 3px 18px rgba(0,0,0,.45);
 }
 
 .cursive-quote span {
   display: block;
-  font-size: 3.6rem;
+  font-size: 1.03em;
   margin-top: -6px;
 }
 
@@ -1254,8 +1256,37 @@ input, select {
 .account-menu-heading strong { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-menu-heading span { color: var(--text-secondary); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; }
 .account-menu button { display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); text-align: left; font: inherit; cursor: pointer; }
-.account-menu button:hover { background: rgba(255,255,255,.07); }
-.account-menu button.account-logout { color: #e49b8e; }
+.account-menu button:hover { background: var(--bg-card-hover); }
+.account-menu button.account-logout { margin-top: 3px; color: #a3211b; font-weight: 700; }
+.account-menu button.account-logout:hover,
+.account-menu button.account-logout:focus-visible { background: #fff0ee; color: #811b16; }
+
+.account-page-shell { min-height: calc(100vh - 76px); background: radial-gradient(ellipse at top, #eef3ed 0, var(--bg-main) 68%); }
+.account-page-card { color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+.theme-switch { position: fixed; right: 22px; bottom: 22px; z-index: 1100; display: inline-flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid var(--border-subtle); border-radius: var(--radius-full); color: var(--text-secondary); background: var(--bg-card); box-shadow: var(--shadow-md); cursor: pointer; }
+.theme-switch > svg { width: 17px; height: 17px; }
+.theme-switch-track { width: 38px; height: 22px; padding: 3px; border-radius: var(--radius-full); background: var(--accent-primary); }
+.theme-switch-thumb { display: block; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0003; transition: transform var(--transition-fast); }
+.theme-switch[aria-pressed="true"] .theme-switch-thumb { transform: translateX(16px); }
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-main: #171b18;
+  --bg-card: #242b26;
+  --bg-input: #1c221e;
+  --text-primary: #f3f4ef;
+  --text-secondary: #c2cbc3;
+  --border-subtle: #3a453d;
+  --border-light: #465248;
+  --color-secondary: #344238;
+  --accent-primary: #8eaf96;
+  --accent-hover: #789b81;
+  --accent-glow: rgba(142,175,150,.2);
+}
+html[data-theme="dark"] .site-header { background: #202722; border-bottom-color: #3a453d; }
+html[data-theme="dark"] .brand-name { color: #f3f4ef; }
+html[data-theme="dark"] .nav-link { color: #d6ddd6; }
+html[data-theme="dark"] .account-page-shell { background: radial-gradient(ellipse at top, #28352c 0, var(--bg-main) 68%); }
 
 .form-group {
   margin-bottom: 18px;
@@ -1319,6 +1350,19 @@ input, select {
 }
 
 /* Toast System */
+.login-forgot-link { display: block; margin-top: 8px; color: var(--accent-primary); text-align: right; font-size: .88rem; text-decoration: none; }
+.login-forgot-link:hover { text-decoration: underline; }
+.login-password-field { position: relative; }
+.login-password-field .form-control { width: 100%; padding-right: 48px; }
+.login-password-toggle { position: absolute; top: 50%; right: 8px; display: grid; width: 34px; height: 34px; place-items: center; transform: translateY(-50%); border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.login-password-toggle:hover { color: var(--accent-primary); background: rgba(255,255,255,.06); }
+.login-password-toggle svg { width: 19px; height: 19px; }
+.icon-definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear { display: none; }
+input[type="password"]::-webkit-credentials-auto-fill-button { visibility: hidden; pointer-events: none; }
+.login-password-toggle[aria-pressed="true"] { color: var(--accent-primary); background: var(--color-secondary); }
+
 .toast-container {
   position: fixed;
   bottom: 24px;
@@ -1841,13 +1885,29 @@ input, select {
   .cta-content-wrapper {
     flex-direction: column;
     align-items: flex-start;
-    gap: 32px;
-    padding: 36px 32px;
+    gap: 24px;
+    padding: 40px 40px;
+  }
+
+  .cta-banner {
+    min-height: 390px;
+  }
+
+  .cta-left {
+    max-width: 620px;
   }
 
   .cta-right {
     text-align: left;
     padding-right: 0;
+  }
+
+  .hero-content {
+    max-width: min(100%, 760px);
+  }
+
+  .hero-title {
+    font-size: clamp(2.5rem, 5vw, 3rem);
   }
 }
 
@@ -1879,8 +1939,32 @@ input, select {
   }
   .header-actions .account-trigger { display: inline-flex; max-width: 145px; }
 
+  .cta-content-wrapper {
+    gap: 22px;
+    padding: 30px 24px;
+  }
+
+  .cta-banner {
+    min-height: 390px;
+    background-position: 58% center;
+  }
+
+  .cta-title {
+    font-size: clamp(1.8rem, 7vw, 2.25rem);
+  }
+
+  .cta-desc {
+    max-width: 38ch;
+    font-size: .9rem;
+  }
+
+  .cursive-quote {
+    font-size: clamp(2.35rem, 9vw, 3rem);
+  }
+
   .hero-title {
-    font-size: 2.3rem;
+    font-size: clamp(2rem, 7.5vw, 2.5rem);
+    line-height: 1.12;
   }
 
   .search-widget {
