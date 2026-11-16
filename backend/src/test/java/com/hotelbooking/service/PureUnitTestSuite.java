@@ -190,7 +190,11 @@ public class PureUnitTestSuite {
     // FR-92: Kiểm thử Thông báo thanh toán
     @Test
     void testPaymentNotificationService() {
-        PaymentNotificationService service = new PaymentNotificationService();
+        PaymentNotificationService service = new PaymentNotificationService(
+            org.mockito.Mockito.mock(
+        com.hotelbooking.repository.CustomerNotificationRepository.class
+    )             
+        );
         String success = service.buildPaymentSuccessNotification("HB-999888", 8400000L);
         assertTrue(success.contains("Thanh toan thanh cong"));
         assertTrue(success.contains("HB-999888"));
@@ -337,7 +341,11 @@ public class PureUnitTestSuite {
             return null;
         });
 
-        PaymentNotificationService notif = new PaymentNotificationService();
+        PaymentNotificationService notif = new PaymentNotificationService(
+            org.mockito.Mockito.mock(
+        com.hotelbooking.repository.CustomerNotificationRepository.class
+    )
+        );
         PaymentService paymentService = new PaymentService(paymentRepo, bookingRepo, Optional.of(notif));
 
         // 1. Thực hiện thanh toán VNPay thành công

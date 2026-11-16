@@ -106,8 +106,12 @@ public class PromotionController {
         if (update.getUsageLimit() != null) existing.setUsageLimit(update.getUsageLimit());
         if (update.getIsActive() != null) existing.setIsActive(update.getIsActive());
 
-        Promotion saved = promotionService.savePromotion(existing);
-        return ResponseEntity.ok(saved);
+        try {
+            Promotion saved = promotionService.savePromotion(existing);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     // FR-54: Xóa khuyến mãi (Admin)

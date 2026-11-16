@@ -1,3 +1,4 @@
+
 package com.hotelbooking.model;
 
 import jakarta.persistence.*;

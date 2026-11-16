@@ -22,7 +22,12 @@ public class PromotionService {
 
     // FR-51: Xem danh sách khuyến mãi đang hoạt động
     public List<Promotion> getActivePromotions() {
-        return promotionRepository.findByIsActiveTrueOrderByCreatedAtDesc();
+        LocalDate today = LocalDate.now();
+        return promotionRepository.findByIsActiveTrueOrderByCreatedAtDesc().stream()
+                .filter(p -> p.getStartDate() == null || !today.isBefore(p.getStartDate()))
+                .filter(p -> p.getEndDate() == null || !today.isAfter(p.getEndDate()))
+                .filter(p -> p.getUsageLimit() == null || p.getUsedCount() == null || p.getUsedCount() < p.getUsageLimit())
+                .toList();
     }
 
     // Quản trị: Xem tất cả khuyến mãi
@@ -111,6 +116,28 @@ public class PromotionService {
             throw new IllegalArgumentException("Mã khuyến mãi không được để trống.");
         }
         promotion.setCode(promotion.getCode().trim().toUpperCase());
+
+        if (promotion.getDiscountPercent() == null || promotion.getDiscountPercent() <= 0 || promotion.getDiscountPercent() > 100) {
+            throw new IllegalArgumentException("Mức giảm phải nằm trong khoảng 0-100%.");
+        }
+        if (promotion.getStartDate() == null || promotion.getEndDate() == null) {
+            throw new IllegalArgumentException("Vui lòng nhập ngày bắt đầu và ngày kết thúc.");
+        }
+        if (promotion.getEndDate().isBefore(promotion.getStartDate())) {
+            throw new IllegalArgumentException("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
+        }
+        if (promotion.getUsageLimit() != null && promotion.getUsageLimit() <= 0) {
+            throw new IllegalArgumentException("Số lượt sử dụng tối đa phải lớn hơn 0.");
+        }
+        promotionRepository.findByCodeIgnoreCase(promotion.getCode()).ifPresent(other -> {
+            if (promotion.getId() == null || !other.getId().equals(promotion.getId())) {
+                throw new IllegalArgumentException("Mã khuyến mãi '" + promotion.getCode() + "' đã tồn tại.");
+            }
+        });
+        if (promotion.getUsedCount() == null) promotion.setUsedCount(0);
+        if (promotion.getIsActive() == null) promotion.setIsActive(true);
+        if (promotion.getMinBookingAmount() == null) promotion.setMinBookingAmount(0L);
+
         return promotionRepository.save(promotion);
     }
 

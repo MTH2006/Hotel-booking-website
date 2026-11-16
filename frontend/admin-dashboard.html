@@ -127,6 +127,15 @@
       .admin-sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-subtle); }
       .sidebar-nav { max-height: 200px; }
     }
+    /* Promotion form modal */
+    .promo-modal { position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.65); }
+    .promo-modal.open { display: flex; }
+    .promo-modal-card { width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 24px; }
+    .promo-modal-card h3 { margin: 0 0 16px; color: #fff; }
+    .promo-form-error { color: #f87171; font-size: 13px; margin-top: 10px; display: none; }
+    .promo-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    .badge-gray { background: rgba(148,163,184,.2); color: #cbd5e1; }
+    .badge-red { background: rgba(248,113,113,.18); color: #f87171; }
   </style>
 </head>
 <body>
@@ -629,8 +638,10 @@
                     <th>Mức Giảm</th>
                     <th>Giảm Tối Đa</th>
                     <th>Đơn Tối Thiểu</th>
+                    <th>Thời Hạn</th>
                     <th>Đã Sử Dụng</th>
                     <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody id="promosTableBody"></tbody>
@@ -805,6 +816,33 @@
     </div>
   </div>
 
+  <!-- PROMOTION FORM MODAL [FR-55] -->
+  <div class="promo-modal" id="promoModal" role="dialog" aria-modal="true" aria-labelledby="promoModalTitle">
+    <div class="promo-modal-card">
+      <h3 id="promoModalTitle">Thêm mã khuyến mãi</h3>
+      <form id="promoForm" novalidate>
+        <input type="hidden" id="pmId">
+        <div class="form-grid">
+          <div class="form-group"><label for="pmCode">Mã voucher *</label><input type="text" id="pmCode" maxlength="50" style="text-transform:uppercase" required></div>
+          <div class="form-group"><label for="pmTitle">Tiêu đề chương trình *</label><input type="text" id="pmTitle" required></div>
+          <div class="form-group"><label for="pmPercent">Mức giảm (%) *</label><input type="number" id="pmPercent" min="1" max="100" step="0.5" required></div>
+          <div class="form-group"><label for="pmMax">Giảm tối đa (đ)</label><input type="number" id="pmMax" min="0" step="1000"></div>
+          <div class="form-group"><label for="pmMin">Đơn tối thiểu (đ)</label><input type="number" id="pmMin" min="0" step="1000" value="0"></div>
+          <div class="form-group"><label for="pmLimit">Số lượt sử dụng tối đa *</label><input type="number" id="pmLimit" min="1" required></div>
+          <div class="form-group"><label for="pmStart">Ngày bắt đầu *</label><input type="date" id="pmStart" required></div>
+          <div class="form-group"><label for="pmEnd">Ngày kết thúc *</label><input type="date" id="pmEnd" required></div>
+          <div class="form-group"><label for="pmActive">Trạng thái</label>
+            <select id="pmActive"><option value="true">Kích hoạt</option><option value="false">Ngừng áp dụng</option></select></div>
+        </div>
+        <div class="promo-form-error" id="pmError"></div>
+        <div class="promo-modal-actions">
+          <button type="button" class="header-btn" onclick="closePromoModal()">Hủy</button>
+          <button type="submit" class="header-btn accent">Lưu chương trình</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Script Implementation -->
   <script>
     const API_BASE = (window.location.protocol.startsWith('http') && window.location.port !== '8080')
@@ -849,11 +887,7 @@
       { id: 3, guest: 'Trần Minh Đức', hotel: 'The Lumiere Hotel', rating: 4, comment: 'Phòng đẹp, sạch sẽ nhưng check-in giờ cao điểm hơi lâu một chút.', date: '2026-10-28', visible: true }
     ];
 
-    let promotions = [
-      { code: 'HESTORA2026', title: 'Chào mừng năm 2026 - Giảm ngay 10%', discount: '10%', max: 500000, min: 1000000, used: 15, active: true },
-      { code: 'SUMMERHOT', title: 'Ưu đãi hè rực rỡ - Giảm ngay 15%', discount: '15%', max: 800000, min: 2000000, used: 42, active: true },
-      { code: 'VIPSTAY', title: 'Đặc quyền thành viên VIP - Giảm ngay 20%', discount: '20%', max: 1500000, min: 5000000, used: 8, active: true }
-    ];
+    let promotions = []; // tải từ GET /api/admin/promotions
 
     function getAuthToken() {
       return localStorage.getItem('token') || (JSON.parse(localStorage.getItem('hotel_user') || '{}').token);
@@ -1063,7 +1097,7 @@
       renderRoomTypesTable();
       renderServicesTable();
       renderReviewsTable();
-      renderPromosTable();
+      loadPromotions();
     }
 
     function updateKPIs() {
@@ -1318,19 +1352,57 @@
       `).join('');
     }
 
+    const vndFmt = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
+    const dmy = (d) => { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '—'; };
+
+    function promoStatus(p) {
+      const t = new Date().toISOString().slice(0, 10);
+      if (p.isActive === false) return { label: 'Ngừng áp dụng', cls: 'badge-gray' };
+      if (String(p.startDate).slice(0, 10) > t) return { label: 'Sắp diễn ra', cls: 'badge-amber' };
+      if (String(p.endDate).slice(0, 10) < t) return { label: 'Hết hạn', cls: 'badge-red' };
+      if (p.usageLimit != null && (p.usedCount || 0) >= p.usageLimit) return { label: 'Hết lượt', cls: 'badge-red' };
+      return { label: 'Đang áp dụng', cls: 'badge-green' };
+    }
+
+    async function loadPromotions() {
+      const tbody = document.getElementById('promosTableBody');
+      try {
+        const res = await fetch(`${API_BASE}/admin/promotions`, { headers: { 'Authorization': `Bearer ${getAuthToken()}` } });
+        if (!res.ok) throw new Error(res.status === 403 ? 'Không có quyền quản trị' : `Lỗi máy chủ (${res.status})`);
+        promotions = await res.json();
+        renderPromosTable();
+      } catch (e) {
+        promotions = [];
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f87171;">Không tải được danh sách khuyến mãi: ${escapeHtml(e.message)}</td></tr>`;
+      }
+    }
+
     function renderPromosTable() {
       const tbody = document.getElementById('promosTableBody');
-      tbody.innerHTML = promotions.map(p => `
+      if (!promotions.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);">Chưa có chương trình khuyến mãi nào.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = promotions.map(p => {
+        const st = promoStatus(p);
+        const on = p.isActive !== false;
+        return `
         <tr>
-          <td><strong style="color:var(--accent-light); font-family:monospace; font-size:14px;">${p.code}</strong></td>
-          <td>${escapeHtml(p.title)}</td>
-          <td><span class="badge-amber" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">${p.discount}</span></td>
-          <td>${(p.max).toLocaleString()}đ</td>
-          <td>${(p.min).toLocaleString()}đ</td>
-          <td><strong>${p.used} lượt</strong></td>
-          <td><span class="badge-green" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">Đang áp dụng</span></td>
-        </tr>
-      `).join('');
+          <td><strong style="color:var(--accent-light); font-family:monospace; font-size:14px;">${escapeHtml(p.code)}</strong></td>
+          <td>${escapeHtml(p.title || '')}</td>
+          <td><span class="badge-amber" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">${p.discountPercent}%</span></td>
+          <td>${vndFmt(p.maxDiscountAmount)}</td>
+          <td>${vndFmt(p.minBookingAmount)}</td>
+          <td>${dmy(p.startDate)} – ${dmy(p.endDate)}</td>
+          <td><strong>${p.usedCount || 0}/${p.usageLimit ?? '∞'}</strong></td>
+          <td><span class="${st.cls}" style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">${st.label}</span></td>
+          <td style="white-space:nowrap;">
+            <button class="btn-sm-action btn-action-gold" onclick="openEditPromoModal(${p.id})">Sửa</button>
+            <button class="btn-sm-action btn-action-gold" onclick="togglePromo(${p.id})">${on ? 'Ngừng' : 'Kích hoạt'}</button>
+            <button class="btn-sm-action" style="background:rgba(248,113,113,.18);color:#f87171;" onclick="deletePromo(${p.id})">Xóa</button>
+          </td>
+        </tr>`;
+      }).join('');
     }
 
     function renderReportsTable() {
@@ -1462,22 +1534,94 @@
       renderHotelsTable();
     }
 
-    function openAddPromoModal() {
-      const code = prompt('Nhập mã voucher mới (viết hoa):');
-      if (!code) return;
-      const discount = prompt('Nhập % giảm (ví dụ: 15%):', '15%');
-      promotions.push({
-        code: code.toUpperCase(),
-        title: `Chương trình ưu đãi ${code}`,
-        discount: discount || '10%',
-        max: 500000,
-        min: 1000000,
-        used: 0,
-        active: true
+    async function promoRequest(method, url, body) {
+      const res = await fetch(`${API_BASE}${url}`, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getAuthToken()}` },
+        body: body ? JSON.stringify(body) : undefined
       });
-      alert(`Đã phát hành voucher ${code.toUpperCase()} thành công!`);
-      renderPromosTable();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || (res.status === 403 ? 'Không có quyền thực hiện' : `Lỗi máy chủ (${res.status})`));
+      }
+      return res.status === 204 ? null : res.json().catch(() => null);
     }
+
+    function fillPromoForm(p) {
+      document.getElementById('promoModalTitle').textContent = p ? `Chỉnh sửa: ${p.code}` : 'Thêm mã khuyến mãi';
+      document.getElementById('pmId').value = p ? p.id : '';
+      document.getElementById('pmCode').value = p ? p.code : '';
+      document.getElementById('pmTitle').value = p ? (p.title || '') : '';
+      document.getElementById('pmPercent').value = p ? p.discountPercent : '';
+      document.getElementById('pmMax').value = p ? (p.maxDiscountAmount ?? '') : '';
+      document.getElementById('pmMin').value = p ? (p.minBookingAmount ?? 0) : 0;
+      document.getElementById('pmLimit').value = p ? (p.usageLimit ?? '') : 100;
+      document.getElementById('pmStart').value = p ? String(p.startDate).slice(0, 10) : new Date().toISOString().slice(0, 10);
+      document.getElementById('pmEnd').value = p ? String(p.endDate).slice(0, 10) : '';
+      document.getElementById('pmActive').value = p ? String(p.isActive !== false) : 'true';
+      document.getElementById('pmError').style.display = 'none';
+    }
+
+    function openAddPromoModal() { fillPromoForm(null); document.getElementById('promoModal').classList.add('open'); }
+    function openEditPromoModal(id) {
+      const p = promotions.find(x => x.id === id);
+      if (!p) return;
+      fillPromoForm(p);
+      document.getElementById('promoModal').classList.add('open');
+    }
+    function closePromoModal() { document.getElementById('promoModal').classList.remove('open'); }
+
+    async function submitPromoForm(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('pmError');
+      const fail = (m) => { errEl.textContent = m; errEl.style.display = 'block'; };
+      const id = document.getElementById('pmId').value;
+      const data = {
+        code: document.getElementById('pmCode').value.trim().toUpperCase(),
+        title: document.getElementById('pmTitle').value.trim(),
+        discountPercent: Number(document.getElementById('pmPercent').value),
+        maxDiscountAmount: Number(document.getElementById('pmMax').value) || 0,
+        minBookingAmount: Number(document.getElementById('pmMin').value) || 0,
+        usageLimit: Number(document.getElementById('pmLimit').value),
+        startDate: document.getElementById('pmStart').value,
+        endDate: document.getElementById('pmEnd').value,
+        isActive: document.getElementById('pmActive').value === 'true'
+      };
+      if (!/^[A-Z0-9_-]{3,50}$/.test(data.code)) return fail('Mã chỉ gồm chữ, số, "-" hoặc "_" (3-50 ký tự).');
+      if (!data.title) return fail('Vui lòng nhập tiêu đề chương trình.');
+      if (!(data.discountPercent > 0 && data.discountPercent <= 100)) return fail('Mức giảm phải trong khoảng 1-100%.');
+      if (!(data.usageLimit > 0)) return fail('Số lượt sử dụng tối đa phải lớn hơn 0.');
+      if (!data.startDate || !data.endDate) return fail('Vui lòng chọn ngày bắt đầu và kết thúc.');
+      if (data.endDate < data.startDate) return fail('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.');
+      try {
+        if (id) await promoRequest('PUT', `/admin/promotions/${id}`, data);
+        else await promoRequest('POST', '/admin/promotions', data);
+        closePromoModal();
+        await loadPromotions();
+      } catch (ex) { fail(ex.message); }
+    }
+
+    async function togglePromo(id) {
+      const p = promotions.find(x => x.id === id);
+      if (!p) return;
+      try {
+        await promoRequest('PUT', `/admin/promotions/${id}`, { isActive: p.isActive === false });
+        await loadPromotions();
+      } catch (ex) { alert('Không thể đổi trạng thái: ' + ex.message); }
+    }
+
+    async function deletePromo(id) {
+      const p = promotions.find(x => x.id === id);
+      if (!p || !confirm(`Xóa vĩnh viễn mã ${p.code}? Nếu chỉ muốn tạm dừng, hãy dùng nút "Ngừng".`)) return;
+      try {
+        await promoRequest('DELETE', `/admin/promotions/${id}`);
+        await loadPromotions();
+      } catch (ex) { alert('Không thể xóa: ' + ex.message); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('promoForm')?.addEventListener('submit', submitPromoForm);
+    });
 
     function exportAdminReport() {
       alert('Đang tổng hợp báo cáo tài chính và công suất buồng phòng...\nFile đã được tải về máy.');

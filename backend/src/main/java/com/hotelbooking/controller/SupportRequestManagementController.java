@@ -1,3 +1,4 @@
+
 package com.hotelbooking.controller;
 
 import com.hotelbooking.model.SupportRequest;
@@ -14,7 +15,10 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/support/requests")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "http://localhost:5173"
+})
 public class SupportRequestManagementController {
 
     private final SupportRequestService supportRequestService;
@@ -41,6 +45,7 @@ public class SupportRequestManagementController {
             return ResponseEntity.status(401).build();
         }
 
+        // Chi ADMIN hoac MANAGER duoc xem yeu cau
         if (!accessControl.isManagerOrAdmin(currentUser.get())) {
             return ResponseEntity.status(403).build();
         }
@@ -63,6 +68,7 @@ public class SupportRequestManagementController {
             return ResponseEntity.status(401).build();
         }
 
+        // Chi ADMIN hoac MANAGER duoc tiep nhan yeu cau
         if (!accessControl.isManagerOrAdmin(currentUser.get())) {
             return ResponseEntity.status(403).build();
         }

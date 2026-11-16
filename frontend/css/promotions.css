@@ -1,0 +1,73 @@
+/* HESTORA - Promotions section (FR-51, FR-52) */
+.promo-section { padding: 72px 0; background: var(--bg-main); }
+.promo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 22px;
+  margin-top: 28px;
+}
+.promo-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.promo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+.promo-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.promo-badge {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: var(--badge-discount);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.promo-card h3 { margin: 0; font-size: 1.02rem; line-height: 1.4; color: var(--text-primary); }
+.promo-cond { margin: 0; font-size: 0.84rem; line-height: 1.55; color: var(--text-secondary); flex: 1; }
+.promo-code-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-secondary);
+  border: 1.5px dashed var(--accent-primary);
+  border-radius: var(--radius-sm);
+}
+.promo-code-chip code { font-weight: 800; letter-spacing: 0.08em; color: var(--accent-primary); }
+.promo-copy-btn {
+  border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--accent-primary);
+}
+.promo-meta { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); }
+.promo-card-actions { display: flex; gap: 8px; }
+.promo-card-actions .btn-pill { flex: 1; justify-content: center; padding: 9px 12px; }
+
+/* Detail modal (FR-52) */
+.promo-detail-card { max-width: 520px; padding: 28px; position: relative; }
+.promo-detail-title { margin: 10px 0 6px; font-family: var(--font-serif); font-size: 1.3rem; color: var(--text-primary); }
+.promo-detail-list { list-style: none; margin: 16px 0 14px; padding: 0; display: grid; gap: 10px; }
+.promo-detail-list li {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem;
+}
+.promo-detail-list li span { color: var(--text-muted); }
+.promo-detail-list li strong { text-align: right; color: var(--text-primary); }
+.promo-progress { height: 6px; background: var(--color-secondary); border-radius: var(--radius-full); overflow: hidden; }
+.promo-progress i { display: block; height: 100%; background: var(--accent-primary); }
+.promo-detail-actions { display: flex; gap: 10px; margin-top: 20px; }
+.promo-detail-actions .btn-pill { flex: 1; justify-content: center; }
