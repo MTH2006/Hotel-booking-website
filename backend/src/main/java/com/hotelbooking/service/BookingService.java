@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
@@ -30,6 +31,10 @@ public class BookingService {
     private final BookingNotificationService notificationService;
     private final BookingChangeNotificationService changeNotificationService;
     private final Random random = new Random();
+
+    // Optional để không phá các constructor đang dùng trong unit test
+    @Autowired(required = false)
+    private PromotionService promotionService;
 
     @Autowired
     public BookingService(
@@ -118,6 +123,22 @@ public class BookingService {
                 calculatedPrice = Math.max(0, calculatedPrice - booking.getDiscountAmount());
             }
             booking.setTotalPrice(calculatedPrice);
+        }
+
+        // 5b. Kiểm tra lại mã khuyến mãi ở phía server & ghi nhận lượt sử dụng [FR-53, FR-54]
+        String promoCode = booking.getPromotionCode();
+        if (promotionService != null && promoCode != null && !promoCode.isBlank()) {
+            long clientDiscount = booking.getDiscountAmount() != null ? booking.getDiscountAmount() : 0L;
+            long baseAmount = (booking.getTotalPrice() != null ? booking.getTotalPrice() : 0L) + clientDiscount;
+            Map<String, Object> promoResult = promotionService.applyPromotion(promoCode, baseAmount);
+            if (!Boolean.TRUE.equals(promoResult.get("valid"))) {
+                throw new IllegalArgumentException(String.valueOf(promoResult.get("message")));
+            }
+            long discount = ((Number) promoResult.get("discountAmount")).longValue();
+            booking.setPromotionCode(String.valueOf(promoResult.get("code")));
+            booking.setDiscountAmount(discount);
+            booking.setTotalPrice(Math.max(0L, baseAmount - discount));
+            promotionService.incrementUsedCount(booking.getPromotionCode());
         }
 
         // 6. Sinh mã đặt phòng duy nhất [FR-29]
