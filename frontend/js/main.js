@@ -188,9 +188,9 @@
         return await response.json();
       } catch {
         return [
-          { code: 'HESTORA2026', title: 'Chào mừng năm 2026 - Giảm ngay 10%', discountPercent: 10, maxDiscountAmount: 500000, minBookingAmount: 1000000 },
-          { code: 'SUMMERHOT', title: 'Ưu đãi hè rực rỡ - Giảm ngay 15%', discountPercent: 15, maxDiscountAmount: 800000, minBookingAmount: 2000000 },
-          { code: 'VIPSTAY', title: 'Đặc quyền thành viên VIP - Giảm ngay 20%', discountPercent: 20, maxDiscountAmount: 1500000, minBookingAmount: 5000000 }
+          { id: 1, code: 'HESTORA2026', title: 'Chào mừng năm 2026 - Giảm ngay 10%', discountPercent: 10, maxDiscountAmount: 500000, minBookingAmount: 1000000, startDate: '2026-01-01', endDate: '2026-12-31', usageLimit: 500, usedCount: 15, isActive: true },
+          { id: 2, code: 'SUMMERHOT', title: 'Ưu đãi hè rực rỡ - Giảm ngay 15%', discountPercent: 15, maxDiscountAmount: 800000, minBookingAmount: 2000000, startDate: '2026-05-01', endDate: '2026-09-30', usageLimit: 200, usedCount: 42, isActive: true },
+          { id: 3, code: 'VIPSTAY', title: 'Đặc quyền thành viên VIP - Giảm ngay 20%', discountPercent: 20, maxDiscountAmount: 1500000, minBookingAmount: 3000000, startDate: '2026-01-01', endDate: '2026-12-31', usageLimit: 100, usedCount: 8, isActive: true }
         ];
       }
     },
@@ -201,10 +201,19 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: code, bookingAmount: amount }),
-          signal: AbortSignal.timeout(1200)
+          signal: AbortSignal.timeout(3000)
         });
-        if (!response.ok) throw new Error('Apply failed');
-        return await response.json();
+        // Backend trả HTTP 400 kèm {valid:false, message} khi mã không hợp lệ -> vẫn đọc body để hiện đúng thông báo
+        const data = await response.json().catch(() => null);
+        if (!data || typeof data.valid === 'undefined') throw new Error('Apply failed');
+        return {
+          success: data.valid === true,
+          message: data.message,
+          code: data.code,
+          discountAmount: data.discountAmount || 0,
+          finalAmount: data.finalAmount,
+          promotion: data.promotion
+        };
       } catch {
         const c = (code || '').toUpperCase().trim();
         if (c === 'HESTORA2026') {
@@ -212,11 +221,12 @@
           const disc = Math.min(amount * 0.1, 500000);
           return { success: true, discountAmount: disc, finalAmount: amount - disc, message: 'Áp dụng mã HESTORA2026 thành công!' };
         } else if (c === 'SUMMERHOT') {
+          if (new Date() > new Date('2026-09-30T23:59:59')) return { success: false, message: 'Mã khuyến mãi đã hết hạn sử dụng (Hết hạn: 2026-09-30).' };
           if (amount < 2000000) return { success: false, message: 'Mã SUMMERHOT áp dụng cho đơn từ 2.000.000đ.' };
           const disc = Math.min(amount * 0.15, 800000);
           return { success: true, discountAmount: disc, finalAmount: amount - disc, message: 'Áp dụng mã SUMMERHOT thành công!' };
         } else if (c === 'VIPSTAY') {
-          if (amount < 5000000) return { success: false, message: 'Mã VIPSTAY áp dụng cho đơn từ 5.000.000đ.' };
+          if (amount < 3000000) return { success: false, message: 'Mã VIPSTAY áp dụng cho đơn từ 3.000.000đ.' };
           const disc = Math.min(amount * 0.20, 1500000);
           return { success: true, discountAmount: disc, finalAmount: amount - disc, message: 'Áp dụng mã VIPSTAY thành công!' };
         }
@@ -446,6 +456,8 @@
     initAuthModal();
     initBookingModal();
     initQuickSearch();
+    window.HotelAPI = HotelAPI;
+    window.HestoraToast = showToast;
     initPromotionsModal();
     initMyBookingsModal();
     initVoucherModal();
@@ -494,7 +506,12 @@
     });
 
     // Custom nav item hooks
-    document.getElementById('navPromotions')?.addEventListener('click', () => openPromotionsModal());
+    document.getElementById('navPromotions')?.addEventListener('click', () => {
+      document.getElementById('promotionsSection')?.scrollIntoView({ behavior: 'smooth' });
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.getElementById('navPromotions')?.classList.add('active');
+      document.getElementById('navMenu')?.classList.remove('active');
+    });
     document.getElementById('navMyBookings')?.addEventListener('click', () => openMyBookingsModal());
     document.getElementById('navSupport')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -903,7 +920,7 @@
 
       if (res.success) {
         state.appliedPromo = {
-          code: code,
+          code: String(res.code || code).toUpperCase(),
           discountAmount: res.discountAmount || (rawTotal * 0.1)
         };
         if (promoFeedback) {
@@ -942,6 +959,8 @@
         checkOut: document.getElementById('bookCheckOut')?.value,
         roomType: document.getElementById('bookRoomType')?.value,
         promoCode: state.appliedPromo?.code || null,
+        promotionCode: state.appliedPromo?.code || null,
+        discountAmount: state.appliedPromo?.discountAmount || 0,
         paymentMethod: document.getElementById('bookPaymentMethod')?.value || 'CASH_ON_ARRIVAL',
         specialRequests: document.getElementById('bookSpecialRequests')?.value || '',
         totalPrice: state.selectedHotelTotal || state.selectedHotel?.price
@@ -981,7 +1000,7 @@
     if (elLoc) elLoc.textContent = hotel.location;
     if (elImg) elImg.src = hotel.image;
     if (promoFeedback) promoFeedback.style.display = 'none';
-    if (promoInp) promoInp.value = '';
+    if (promoInp) promoInp.value = window.__pendingPromoCode || '';
 
     const inInp = document.getElementById('bookCheckIn');
     const outInp = document.getElementById('bookCheckOut');
