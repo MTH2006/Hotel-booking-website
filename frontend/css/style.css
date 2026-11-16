@@ -1105,16 +1105,19 @@ input, select {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.04);
-  transition: all var(--transition-fast);
+  color: #fff;
+  background: #6f6251;
+  box-shadow: 0 3px 9px rgba(24, 24, 24, .12);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
 }
 
-.social-btn:hover {
-  color: var(--text-primary);
-  background: rgba(162, 123, 92, 0.25);
-  transform: translateY(-2px);
-}
+.social-btn[aria-label="Facebook"] { background: #1877f2; }
+.social-btn[aria-label="Instagram"] { background: radial-gradient(circle at 30% 110%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 62%, #285aeb 92%); }
+.social-btn[aria-label="YouTube"] { background: #ff0033; }
+.social-btn[aria-label="Email"] { color: #fff; background: #ea4335; }
+.social-btn[aria-label="YouTube"] svg polygon { fill: #ff0033; }
+.social-btn:hover { filter: brightness(1.08); transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 15px rgba(20, 20, 20, .2); }
+.social-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent-light) 70%, white); outline-offset: 3px; }
 
 .footer-bottom {
   padding-top: 24px;
