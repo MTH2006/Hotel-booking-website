@@ -12,6 +12,7 @@
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/ai-chatbot.css">
+  <link rel="stylesheet" href="css/promotions.css">
 </head>
 <body>
 
@@ -411,6 +412,21 @@
   </section>
 
   <!-- ==========================================================================
+       PROMOTIONS SECTION (ƯU ĐÃI) [FR-51, FR-52]
+       ========================================================================== -->
+  <section class="promo-section" id="promotionsSection">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Ưu đãi đang áp dụng</h2>
+          <p class="section-subtitle">Sao chép mã và nhập khi đặt phòng để nhận giảm giá</p>
+        </div>
+      </div>
+      <div class="promo-grid" id="promoGrid" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
        CALL TO ACTION BANNER (CTA)
        ========================================================================== -->
   <section class="cta-section">
@@ -472,7 +488,7 @@
           <li class="footer-divider">|</li>
           <li><a href="#hotelsSection" class="footer-link">Khách sạn</a></li>
           <li class="footer-divider">|</li>
-          <li><a href="#hotelsSection" class="footer-link">Ưu đãi</a></li>
+          <li><a href="#promotionsSection" class="footer-link">Ưu đãi</a></li>
           <li class="footer-divider">|</li>
           <li><a href="reviews.html" class="footer-link">Đánh giá</a></li>
           <li class="footer-divider">|</li>
@@ -975,11 +991,23 @@
     </div>
   </div>
 
+  <!-- PROMOTION DETAIL MODAL [FR-52] -->
+  <div class="modal-backdrop" id="promoDetailModal" role="dialog" aria-modal="true" aria-labelledby="promoDetailTitle">
+    <div class="modal-card promo-detail-card">
+      <div class="modal-head">
+        <h3 class="modal-title">Chi tiết khuyến mãi</h3>
+        <button type="button" class="modal-close-btn" id="closePromoDetail" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body" id="promoDetailBody"></div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Application Logic -->
-  <script src="js/main.js?v=20261112-account-chevron-v1"></script>
+  <script src="js/main.js?v=20261115-promotions-v1"></script>
+  <script src="js/promotions.js"></script>
   <!-- React & AI Chatbot Widget -->
   <div id="hestora-ai-chatbot-root"></div>
   <script src="js/vendor/react-lite.js"></script>
