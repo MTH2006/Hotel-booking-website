@@ -2,32 +2,22 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
-  application:
-    name: hotel-booking-backend
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/hotel_booking_db}
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:hotel_booking_db}}
     username: ${DB_USERNAME:hotel_user}
     password: ${DB_PASSWORD:hotel_secure_password_2025}
     driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      idle-timeout: 30000
-      connection-timeout: 20000
+
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: ${JPA_HIBERNATE_DDL_AUTO:update}
-    show-sql: ${JPA_SHOW_SQL:false}
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
-        jdbc:
-          batch_size: 20
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 logging:
   level:
     root: INFO
-    com.hotelbooking: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.hotelbooking: INFO

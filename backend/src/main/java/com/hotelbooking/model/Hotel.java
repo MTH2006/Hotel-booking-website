@@ -44,6 +44,24 @@ public class Hotel {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(columnDefinition = "TEXT")
+    private String address;
+    private String phone;
+    private String email;
+    @Column(columnDefinition = "TEXT")
+    private String images;
+    @Column(columnDefinition = "TEXT")
+    private String amenities;
+    private Integer stars;
+    private Boolean verified = false;
+    private String checkin;
+    private String checkout;
+    @Column(name = "cancellation_policy", columnDefinition = "TEXT")
+    private String cancellationPolicy;
+    @Column(name = "stay_policy", columnDefinition = "TEXT")
+    private String stayPolicy;
+    private Boolean active = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -104,6 +122,31 @@ public class Hotel {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getImages() { return images; }
+    public void setImages(String images) { this.images = images; }
+    public String getAmenities() { return amenities; }
+    public void setAmenities(String amenities) { this.amenities = amenities; }
+    public Integer getStars() { return stars; }
+    public void setStars(Integer stars) { this.stars = stars; }
+    public Boolean getVerified() { return verified; }
+    public void setVerified(Boolean verified) { this.verified = verified; }
+    public String getCheckin() { return checkin; }
+    public void setCheckin(String checkin) { this.checkin = checkin; }
+    public String getCheckout() { return checkout; }
+    public void setCheckout(String checkout) { this.checkout = checkout; }
+    public String getCancellationPolicy() { return cancellationPolicy; }
+    public void setCancellationPolicy(String cancellationPolicy) { this.cancellationPolicy = cancellationPolicy; }
+    public String getStayPolicy() { return stayPolicy; }
+    public void setStayPolicy(String stayPolicy) { this.stayPolicy = stayPolicy; }
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

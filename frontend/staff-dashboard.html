@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bàn Làm Việc Nhân Viên (Staff Workspace) | HESTORA</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/ai-chatbot.css">
+  <style>
+    body { background: var(--bg-main, #141210); color: var(--text-primary, #fff); font-family: var(--font-sans, sans-serif); margin: 0; padding: 0; }
+    
+    /* Layout */
+    .staff-app-container { display: flex; height: 100vh; overflow: hidden; }
+    
+    /* Staff Sidebar */
+    .staff-sidebar { width: 280px; background: var(--bg-surface, #1b1815); border-right: 1px solid var(--border-subtle, #2f2a25); display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-brand { padding: 22px 24px; border-bottom: 1px solid var(--border-subtle, #2f2a25); display: flex; align-items: center; justify-content: space-between; }
+    .brand-title { font-family: var(--font-serif, serif); font-size: 20px; font-weight: 700; color: var(--accent-primary, #a27b5c); text-decoration: none; }
+    .staff-role-pill { background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-radius: 8px; color: var(--text-secondary, #b5aea4); text-decoration: none; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+    .nav-item:hover { background: var(--bg-card, #231f1c); color: #fff; }
+    .nav-item.active { background: #1e293b; color: #60a5fa; border-color: #3b82f6; }
+    .nav-item .icon { font-size: 16px; width: 22px; text-align: center; }
+    .nav-badge { margin-left: auto; background: #dc2626; color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+    
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-subtle, #2f2a25); display: flex; align-items: center; justify-content: space-between; }
+    .staff-profile-chip { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+    .staff-avatar { width: 36px; height: 36px; border-radius: 50%; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    .staff-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .staff-meta strong { display: block; color: #fff; font-size: 13px; }
+    
+    /* Main Content Area */
+    .staff-main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* Staff Header */
+    .staff-topbar { height: 68px; background: var(--bg-surface, #1b1815); border-bottom: 1px solid var(--border-subtle, #2f2a25); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .topbar-title-block h1 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
+    .topbar-title-block span { font-size: 12px; color: var(--text-muted, #7e776f); }
+    .topbar-actions { display: flex; align-items: center; gap: 14px; }
+    .shift-tag { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #4ade80; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+    .topbar-btn { background: var(--bg-card, #231f1c); border: 1px solid var(--border-light, #443c35); color: var(--text-secondary, #b5aea4); padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; font-weight: 600; }
+    .topbar-btn:hover { color: #fff; border-color: var(--accent-primary, #a27b5c); }
+    
+    /* Content Body */
+    .staff-content-body { flex: 1; overflow-y: auto; padding: 28px 32px; }
+    .staff-tab-view { display: none; }
+    .staff-tab-view.active { display: block; }
+    
+    /* Stat Cards */
+    .staff-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 28px; }
+    .staff-kpi-card { background: var(--bg-card, #231f1c); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 12px; padding: 20px; }
+    .staff-kpi-card .kpi-sub { font-size: 12px; color: var(--text-muted, #7e776f); text-transform: uppercase; font-weight: 600; }
+    .staff-kpi-card .kpi-val { font-size: 28px; font-weight: 700; color: #60a5fa; margin-top: 6px; }
+    
+    /* Common Tables & Panels */
+    .panel-box { background: var(--bg-surface, #1b1815); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .panel-title { font-size: 16px; font-weight: 700; color: #fff; }
+    
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { background: var(--bg-card, #231f1c); color: var(--text-secondary, #b5aea4); padding: 12px 14px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-subtle, #2f2a25); }
+    .data-table td { padding: 13px 14px; border-bottom: 1px solid var(--border-subtle, #2f2a25); color: #fff; }
+    .data-table tr:hover { background: var(--bg-card, #231f1c); }
+    
+    /* Action Buttons */
+    .btn-sm-action { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+    .btn-checkin { background: #2563eb; color: white; }
+    .btn-checkout { background: #ea580c; color: white; }
+    .btn-confirm { background: #16a34a; color: white; }
+    .btn-cancel { background: #dc2626; color: white; }
+    
+    /* Room Status Cards Grid */
+    .rooms-status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .room-tile { background: var(--bg-card, #231f1c); border: 1px solid var(--border-subtle, #2f2a25); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .room-tile-header { display: flex; justify-content: space-between; align-items: center; }
+    .room-number { font-size: 16px; font-weight: 700; color: #fff; }
+    .room-status-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; }
+    .status-available { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-occupied { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-cleaning { background: rgba(234, 179, 8, 0.15); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.3); }
+    .status-maintenance { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+    
+    /* Search Bar */
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-input { background: var(--bg-card, #231f1c); border: 1px solid var(--border-light, #443c35); color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 220px; }
+    .filter-input:focus { border-color: #3b82f6; outline: none; }
+  </style>
+</head>
+<body>
+
+  <div class="staff-app-container">
+    <!-- STAFF SIDEBAR -->
+    <aside class="staff-sidebar">
+      <div class="sidebar-brand">
+        <a href="/index.html" class="brand-title">HESTORA</a>
+        <span class="staff-role-pill">STAFF WORKSPACE</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" onclick="showStaffTab('tabStaffDashboard', this)">
+          <span class="icon">📊</span> Dashboard công việc
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffBookings', this)">
+          <span class="icon">📋</span> Quản lý đặt phòng
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffCheckin', this)">
+          <span class="icon">🔑</span> Xử lý Check-in
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffCheckout', this)">
+          <span class="icon">🚪</span> Xử lý Check-out
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffRooms', this)">
+          <span class="icon">🛏️</span> Tình trạng phòng
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffGuests', this)">
+          <span class="icon">🔍</span> Tra cứu khách hàng
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffHandoff', this)">
+          <span class="icon">💬</span> Tiếp nhận AI Handoff
+          <span class="nav-badge" id="sidebarHandoffBadge">0</span>
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffShift', this)">
+          <span class="icon">📝</span> Ghi chú & Bàn giao ca
+        </div>
+        <div class="nav-item" onclick="showStaffTab('tabStaffProfile', this)">
+          <span class="icon">👤</span> Hồ sơ nhân viên
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="staff-profile-chip">
+          <div class="staff-avatar" id="staffAvatar">LT</div>
+          <div class="staff-meta">
+            <strong id="staffFullName">Trần Thị Lễ Tân</strong>
+            <span style="color:#60a5fa;">Nhân viên CSKH / Lễ tân</span>
+          </div>
+        </div>
+        <button onclick="logoutStaff()" title="Đăng xuất" style="background:transparent; border:none; color:#ef4444; font-size:16px; cursor:pointer;">⏻</button>
+      </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div class="staff-main-wrapper">
+      <!-- STAFF HEADER -->
+      <header class="staff-topbar">
+        <div class="topbar-title-block">
+          <h1 id="topbarTitle">Dashboard Công Việc</h1>
+          <span>Bàn trực Lễ tân & Chăm sóc khách hàng HESTORA</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="shift-tag">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#4ade80;"></span>
+            Ca làm: Đang hoạt động
+          </div>
+          <a href="/index.html" class="topbar-btn">Trang chủ</a>
+          <button class="topbar-btn" onclick="logoutStaff()">Đăng xuất</button>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <main class="staff-content-body">
+
+        <!-- 1. DASHBOARD CÔNG VIỆC -->
+        <section id="tabStaffDashboard" class="staff-tab-view active">
+          <div class="staff-stats-grid">
+            <div class="staff-kpi-card">
+              <div class="kpi-sub">Check-in Cần Xử Lý</div>
+              <div class="kpi-val" id="kpiCheckinCount">2</div>
+            </div>
+            <div class="staff-kpi-card">
+              <div class="kpi-sub">Check-out Dự Kiến</div>
+              <div class="kpi-val" id="kpiCheckoutCount">1</div>
+            </div>
+            <div class="staff-kpi-card">
+              <div class="kpi-sub">Phiếu AI Handoff Chờ</div>
+              <div class="kpi-val" id="kpiPendingHandoffs" style="color:#eab308;">0</div>
+            </div>
+            <div class="staff-kpi-card">
+              <div class="kpi-sub">Phòng Sạch Sẵn Sàng</div>
+              <div class="kpi-val" id="kpiAvailableRooms" style="color:#4ade80;">5</div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Đơn Đặt Phòng Cần Xử Lý Gần Nhất</div>
+              <button class="topbar-btn" onclick="loadAllStaffData()">🔄 Làm mới</button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Mã Đơn</th>
+                  <th>Khách Hàng</th>
+                  <th>Khách Sạn & Phòng</th>
+                  <th>Ngày Lưu Trú</th>
+                  <th>Tổng Tiền</th>
+                  <th>Trạng Thái</th>
+                  <th>Thao Tác Nhanh</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardRecentBookings">
+                <tr><td colspan="7" style="text-align:center; color:#7e776f;">Đang tải đơn đặt phòng...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 2. QUẢN LÝ ĐẶT PHÒNG -->
+        <section id="tabStaffBookings" class="staff-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Danh Sách Toàn Bộ Đơn Đặt Phòng</div>
+            </div>
+            <div class="filter-bar">
+              <input type="text" class="filter-input" id="bookingSearchInput" placeholder="🔍 Tìm theo mã đơn HB-xxx, tên khách, số điện thoại..." oninput="filterBookings()">
+              <select class="filter-input" style="max-width:200px;" id="bookingStatusSelect" onchange="filterBookings()">
+                <option value="">Tất cả trạng thái</option>
+                <option value="CONFIRMED">CONFIRMED (Đã xác nhận)</option>
+                <option value="CHECKED_IN">CHECKED_IN (Đã nhận phòng)</option>
+                <option value="COMPLETED">COMPLETED (Hoàn thành)</option>
+                <option value="CANCELLED">CANCELLED (Đã hủy)</option>
+              </select>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Mã Đơn</th>
+                  <th>Khách Hàng</th>
+                  <th>Liên Hệ</th>
+                  <th>Khách Sạn & Hạng Phòng</th>
+                  <th>Check-in / Check-out</th>
+                  <th>Tổng Tiền</th>
+                  <th>Trạng Thái</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody id="bookingsFullTableBody">
+                <tr><td colspan="8" style="text-align:center; color:#7e776f;">Đang tải danh sách đặt phòng...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 3. XỬ LÝ CHECK-IN -->
+        <section id="tabStaffCheckin" class="staff-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Quầy Tiếp Nhận Check-in (Nhận Phòng)</div>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Tìm kiếm đơn đặt phòng của khách đến quầy lễ tân để kiểm tra thông tin và làm thủ tục nhận phòng.</p>
+            <div class="filter-bar">
+              <input type="text" class="filter-input" id="checkinSearchInput" placeholder="Nhập mã đơn (HB-821934...) hoặc SĐT khách hàng...">
+              <button class="topbar-btn" style="background:#2563eb; color:white; border:none;" onclick="searchCheckin()">Tra Cứu Đơn</button>
+            </div>
+            <div id="checkinResultBox" style="margin-top:16px;"></div>
+          </div>
+        </section>
+
+        <!-- 4. XỬ LÝ CHECK-OUT -->
+        <section id="tabStaffCheckout" class="staff-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Quầy Trả Phòng (Check-out)</div>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Danh sách các lượt lưu trú đang ở phòng cần làm thủ tục trả phòng và bàn giao buồng phòng dọn dẹp.</p>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Mã Đơn</th>
+                  <th>Khách Hàng</th>
+                  <th>Hạng Phòng</th>
+                  <th>Ngày Trả Phòng</th>
+                  <th>Thanh Toán</th>
+                  <th>Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="checkoutTableBody">
+                <tr><td colspan="6" style="text-align:center; color:#7e776f;">Đang tải danh sách...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 5. TÌNH TRẠNG PHÒNG -->
+        <section id="tabStaffRooms" class="staff-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Sơ Đồ & Tình Trạng Buồng Phòng</div>
+              <div>
+                <span style="font-size:12px; color:#4ade80; margin-right:12px;">● Sẵn sàng</span>
+                <span style="font-size:12px; color:#fde047; margin-right:12px;">● Đang dọn dẹp</span>
+                <span style="font-size:12px; color:#cbd5e1;">● Bảo trì</span>
+              </div>
+            </div>
+            <div class="rooms-status-grid" id="staffRoomsGrid">
+              <!-- Room tiles dynamically loaded -->
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. TRA CỨU KHÁCH HÀNG -->
+        <section id="tabStaffGuests" class="staff-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Danh Bạ & Lịch Sử Khách Hàng</div>
+            </div>
+            <input type="text" class="filter-input" id="guestSearchInput" placeholder="🔍 Tìm kiếm khách hàng theo tên, email, số điện thoại..." oninput="filterGuests()">
+            <table class="data-table" style="margin-top:16px;">
+              <thead>
+                <tr>
+                  <th>Khách Hàng</th>
+                  <th>Email</th>
+                  <th>Số Điện Thoại</th>
+                  <th>Số Lần Đặt</th>
+                  <th>Tổng Chi Tiêu</th>
+                </tr>
+              </thead>
+              <tbody id="guestsTableBody">
+                <tr><td colspan="5" style="text-align:center; color:#7e776f;">Đang tải dữ liệu khách hàng...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 7. TIẾP NHẬN AI HUMAN HANDOFF -->
+        <section id="tabStaffHandoff" class="staff-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Phiếu Chuyển Tiếp Hỗ Trợ AI (Human Handoff)</div>
+              <a href="/staff-support.html" target="_blank" class="topbar-btn" style="background:#2563eb; color:white; border:none;">Mở giao diện chat chuyên sâu ↗</a>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Mã Phiếu</th>
+                  <th>Khách Hàng</th>
+                  <th>Liên Hệ</th>
+                  <th>Nội Dung Thắc Mắc</th>
+                  <th>Trạng Thái</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody id="staffHandoffTableBody">
+                <tr><td colspan="6" style="text-align:center; color:#7e776f;">Đang tải phiếu hỗ trợ...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 8. GHI CHÚ CA LÀM -->
+        <section id="tabStaffShift" class="staff-tab-view">
+          <div class="panel-box">
+            <div class="panel-header">
+              <div class="panel-title">Sổ Nhật Ký Bàn Giao Ca Trực Lễ Tân</div>
+              <button class="topbar-btn" onclick="saveShiftNote()">Lưu nhật ký ca</button>
+            </div>
+            <textarea id="shiftNoteArea" style="width:100%; min-height:160px; background:var(--bg-card); border:1px solid var(--border-light); color:#fff; padding:14px; border-radius:8px; font-family:inherit; font-size:13.5px;" placeholder="Ghi nhận sự cố buồng phòng, khách VIP yêu cầu nhận phòng muộn, hoặc nhắc nhở ca sau..."></textarea>
+          </div>
+        </section>
+
+        <!-- 9. HỒ SƠ NHÂN VIÊN -->
+        <section id="tabStaffProfile" class="staff-tab-view">
+          <div class="panel-box" style="max-width:600px;">
+            <div class="panel-header">
+              <div class="panel-title">Thông Tin Tài Khoản Nhân Viên</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:14px; font-size:14px;">
+              <div><strong>Họ và tên:</strong> <span id="profName">Trần Thị Lễ Tân</span></div>
+              <div><strong>Email công vụ:</strong> <span id="profEmail">staff@hotelbooking.com</span></div>
+              <div><strong>Vai trò:</strong> <span class="staff-role-pill">STAFF (Nhân viên lễ tân)</span></div>
+              <div><strong>Trạng thái tài khoản:</strong> <span style="color:#4ade80;">● Đang hoạt động</span></div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- STAFF AUTH MODAL OVERLAY -->
+  <div id="staffAuthOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-surface, #1b1815); border:1px solid var(--border-subtle, #2f2a25); border-radius:16px; padding:32px; width:100%; max-width:440px; box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="font-family:var(--font-serif, serif); font-size:22px; font-weight:700; color:var(--accent-primary, #a27b5c); letter-spacing:1px;">HESTORA</div>
+        <div style="font-size:12px; font-weight:700; color:#3b82f6; text-transform:uppercase; margin-top:4px; letter-spacing:0.5px;">BÀN LÀM VIỆC NHÂN VIÊN (STAFF)</div>
+        <p style="font-size:12.5px; color:var(--text-muted, #7e776f); margin:8px 0 0;">Vui lòng đăng nhập với tài khoản nhân viên lễ tân.</p>
+      </div>
+
+      <form id="staffLoginForm" onsubmit="handleStaffLogin(event)" style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:13px; color:var(--text-secondary, #b5aea4); font-weight:600;">Email Nhân Viên</label>
+          <input type="email" id="staffLoginEmail" value="staff@hotelbooking.com" required style="background:var(--bg-card, #231f1c); border:1px solid var(--border-light, #443c35); color:#fff; padding:11px 14px; border-radius:8px; font-size:13px;">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:13px; color:var(--text-secondary, #b5aea4); font-weight:600;">Mật Khẩu</label>
+          <input type="password" id="staffLoginPassword" value="password123" required style="background:var(--bg-card, #231f1c); border:1px solid var(--border-light, #443c35); color:#fff; padding:11px 14px; border-radius:8px; font-size:13px;">
+        </div>
+
+        <button type="submit" id="btnStaffSubmitLogin" style="background:#2563eb; color:#fff; border:none; padding:12px; border-radius:8px; font-weight:700; font-size:14px; cursor:pointer; margin-top:6px;">
+          Đăng Nhập Vào Bàn Làm Việc
+        </button>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+          <a href="/index.html" style="font-size:12px; color:var(--text-muted, #7e776f); text-decoration:none;">← Quay về trang chủ</a>
+          <button type="button" onclick="quickFillStaffLogin()" style="background:transparent; border:none; color:#60a5fa; font-size:12px; cursor:pointer; font-weight:600;">Tự động điền tài khoản</button>
+        </div>
+      </form>
+      <div id="staffLoginError" style="display:none; margin-top:14px; padding:10px 14px; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.3); border-radius:8px; color:#f87171; font-size:12px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.protocol.startsWith('http') && window.location.port !== '8080')
+      ? '/api'
+      : `${window.location.protocol}//${window.location.hostname || 'localhost'}:8080/api`;
+
+    let currentStaff = null;
+    let allBookings = [];
+    let allRooms = [];
+    let allHandoffs = [];
+
+    function getAuthToken() { return localStorage.getItem('token') || (JSON.parse(localStorage.getItem('hotel_user') || '{}').token); }
+
+    async function safeFetchJson(url, options = {}) {
+      let res;
+      try {
+        res = await fetch(url, options);
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json') && url.startsWith('/api')) {
+          res = await fetch(`http://${window.location.hostname || 'localhost'}:8080${url}`, options);
+        }
+      } catch (networkErr) {
+        if (url.startsWith('/api')) {
+          res = await fetch(`http://${window.location.hostname || 'localhost'}:8080${url}`, options);
+        } else {
+          throw networkErr;
+        }
+      }
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        if (!res.ok) {
+          throw new Error(`Máy chủ phản hồi mã trạng thái HTTP ${res.status}`);
+        }
+        throw new Error('Dữ liệu máy chủ phản hồi không đúng định dạng JSON.');
+      }
+      const data = await res.json();
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    async function initStaffDashboard() {
+      const token = getAuthToken();
+      if (!token) {
+        showStaffAuthModal();
+        return;
+      }
+
+      try {
+        const { ok, data: user } = await safeFetchJson(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!ok || !user) throw new Error('Unauthorized');
+        currentStaff = user;
+
+        const role = (currentStaff.role || '').toUpperCase();
+        if (role !== 'STAFF' && role !== 'ADMIN') {
+          showStaffAuthModal(`Tài khoản ${currentStaff.email} mang vai trò ${role}. Bàn làm việc yêu cầu vai trò STAFF!`);
+          return;
+        }
+
+        document.getElementById('staffFullName').innerText = currentStaff.name || currentStaff.email;
+        document.getElementById('staffAvatar').innerText = (currentStaff.name || 'LT').slice(0, 2).toUpperCase();
+        document.getElementById('profName').innerText = currentStaff.name || 'Nhân viên';
+        document.getElementById('profEmail').innerText = currentStaff.email;
+        hideStaffAuthModal();
+
+        // Load saved shift note
+        const savedNote = localStorage.getItem('hestora_shift_note');
+        if (savedNote) document.getElementById('shiftNoteArea').value = savedNote;
+
+        loadAllStaffData();
+      } catch (err) {
+        console.warn(err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('hotel_user');
+        showStaffAuthModal('Phiên làm việc trước đó đã hết hạn. Vui lòng đăng nhập lại tài khoản Nhân viên.');
+      }
+    }
+
+    function showStaffAuthModal(message) {
+      const overlay = document.getElementById('staffAuthOverlay');
+      if (overlay) overlay.style.display = 'flex';
+      const errDiv = document.getElementById('staffLoginError');
+      if (errDiv) {
+        if (message) {
+          errDiv.innerText = message;
+          errDiv.style.display = 'block';
+        } else {
+          errDiv.style.display = 'none';
+        }
+      }
+    }
+
+    function hideStaffAuthModal() {
+      const overlay = document.getElementById('staffAuthOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    async function handleStaffLogin(e) {
+      if (e) e.preventDefault();
+      const email = document.getElementById('staffLoginEmail').value.trim();
+      const password = document.getElementById('staffLoginPassword').value;
+      const errDiv = document.getElementById('staffLoginError');
+      if (errDiv) errDiv.style.display = 'none';
+
+      try {
+        const { ok, data: d } = await safeFetchJson(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!ok || !d.success) {
+          if (errDiv) {
+            errDiv.innerText = d.message || 'Email hoặc mật khẩu không chính xác.';
+            errDiv.style.display = 'block';
+          }
+          return;
+        }
+
+        const role = (d.user?.role || '').toUpperCase();
+        if (role !== 'STAFF' && role !== 'ADMIN') {
+          if (errDiv) {
+            errDiv.innerText = `Tài khoản ${d.user.email} có vai trò là ${role}. Bàn làm việc yêu cầu vai trò STAFF!`;
+            errDiv.style.display = 'block';
+          }
+          return;
+        }
+
+        // Save tokens
+        localStorage.setItem('token', d.token);
+        localStorage.setItem('user', JSON.stringify(d.user));
+        d.user.token = d.token;
+        localStorage.setItem('hotel_user', JSON.stringify(d.user));
+
+        hideStaffAuthModal();
+        initStaffDashboard();
+      } catch (err) {
+        if (errDiv) {
+          errDiv.innerText = 'Lỗi kết nối tới máy chủ: ' + err.message;
+          errDiv.style.display = 'block';
+        }
+      }
+    }
+
+    function quickFillStaffLogin() {
+      document.getElementById('staffLoginEmail').value = 'staff@hotelbooking.com';
+      document.getElementById('staffLoginPassword').value = 'password123';
+    }
+
+    async function loadAllStaffData() {
+      const token = getAuthToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      // 1. Load Bookings
+      try {
+        const resB = await fetch(`${API_BASE}/staff/bookings`, { headers });
+        if (resB.ok) {
+          const d = await resB.json();
+          allBookings = d.data || [];
+          renderDashboardBookings();
+          renderFullBookings(allBookings);
+          renderCheckoutTable();
+          renderGuestsList();
+          updateKPIs();
+        }
+      } catch (e) { console.error('Error bookings:', e); }
+
+      // 2. Load Rooms
+      try {
+        const resR = await fetch(`${API_BASE}/hotels/1/rooms`);
+        if (resR.ok) {
+          allRooms = await resR.json();
+          renderRoomsStatusGrid();
+        }
+      } catch (e) { console.error('Error rooms:', e); }
+
+      // 3. Load Handoffs
+      try {
+        const resH = await fetch(`${API_BASE}/ai/staff/handoffs`, { headers });
+        if (resH.ok) {
+          allHandoffs = await resH.json();
+          renderHandoffTable();
+          const pending = allHandoffs.filter(h => h.status === 'PENDING').length;
+          document.getElementById('sidebarHandoffBadge').innerText = pending;
+          document.getElementById('kpiPendingHandoffs').innerText = pending;
+        }
+      } catch (e) { console.error('Error handoffs:', e); }
+    }
+
+    function updateKPIs() {
+      const checkedIn = allBookings.filter(b => b.status === 'CHECKED_IN').length;
+      const confirmed = allBookings.filter(b => b.status === 'CONFIRMED').length;
+      document.getElementById('kpiCheckinCount').innerText = confirmed;
+      document.getElementById('kpiCheckoutCount').innerText = checkedIn;
+    }
+
+    function renderDashboardBookings() {
+      const tbody = document.getElementById('dashboardRecentBookings');
+      const recent = allBookings.slice(0, 5);
+      if (recent.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#7e776f;">Không có đơn đặt phòng nào.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = recent.map(b => `
+        <tr>
+          <td><strong>${b.bookingId}</strong></td>
+          <td><strong>${escapeHtml(b.guestName)}</strong><br><small style="color:#94a3b8;">${b.guestPhone}</small></td>
+          <td>${escapeHtml(b.hotelName)}<br><small style="color:#94a3b8;">${escapeHtml(b.roomType)}</small></td>
+          <td>${b.checkIn} → ${b.checkOut}</td>
+          <td><strong>${(b.totalPrice || 0).toLocaleString()} VNĐ</strong></td>
+          <td><span class="room-status-badge status-${b.status === 'CONFIRMED' ? 'available' : (b.status === 'CHECKED_IN' ? 'occupied' : 'cleaning')}">${b.status}</span></td>
+          <td>
+            ${b.status === 'CONFIRMED' ? `<button class="btn-sm-action btn-checkin" onclick="quickCheckIn('${b.bookingId}')">Check-in</button>` : ''}
+            ${b.status === 'CHECKED_IN' ? `<button class="btn-sm-action btn-checkout" onclick="quickCheckOut('${b.bookingId}')">Check-out</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderFullBookings(list) {
+      const tbody = document.getElementById('bookingsFullTableBody');
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#7e776f;">Không tìm thấy đơn đặt phòng phù hợp.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td><strong>${b.bookingId}</strong></td>
+          <td><strong>${escapeHtml(b.guestName)}</strong></td>
+          <td>${escapeHtml(b.guestPhone)}<br><small style="color:#94a3b8;">${escapeHtml(b.guestEmail)}</small></td>
+          <td>${escapeHtml(b.hotelName)} - ${escapeHtml(b.roomType)}</td>
+          <td>${b.checkIn} → ${b.checkOut}</td>
+          <td><strong>${(b.totalPrice || 0).toLocaleString()} VNĐ</strong></td>
+          <td><span class="room-status-badge">${b.status}</span></td>
+          <td>
+            ${b.status === 'CONFIRMED' ? `<button class="btn-sm-action btn-checkin" onclick="quickCheckIn('${b.bookingId}')">Check-in</button>` : ''}
+            ${b.status === 'CHECKED_IN' ? `<button class="btn-sm-action btn-checkout" onclick="quickCheckOut('${b.bookingId}')">Check-out</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCheckoutTable() {
+      const tbody = document.getElementById('checkoutTableBody');
+      const activeStays = allBookings.filter(b => b.status === 'CHECKED_IN');
+      if (activeStays.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#7e776f;">Hiện không có khách nào đang lưu trú cần check-out.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = activeStays.map(b => `
+        <tr>
+          <td><strong>${b.bookingId}</strong></td>
+          <td><strong>${escapeHtml(b.guestName)}</strong> (SĐT: ${b.guestPhone})</td>
+          <td>${escapeHtml(b.hotelName)} - ${escapeHtml(b.roomType)}</td>
+          <td>${b.checkOut}</td>
+          <td>${(b.totalPrice || 0).toLocaleString()} VNĐ</td>
+          <td><button class="btn-sm-action btn-checkout" onclick="quickCheckOut('${b.bookingId}')">Xác Nhận Check-out</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderRoomsStatusGrid() {
+      const grid = document.getElementById('staffRoomsGrid');
+      if (allRooms.length === 0) {
+        grid.innerHTML = '<div style="color:#7e776f;">Đang tải danh sách phòng...</div>';
+        return;
+      }
+      grid.innerHTML = allRooms.map(r => {
+        const st = (r.status || 'AVAILABLE').toUpperCase();
+        const statusClass = st === 'AVAILABLE' ? 'status-available' : (st === 'OCCUPIED' ? 'status-occupied' : (st === 'CLEANING' ? 'status-cleaning' : 'status-maintenance'));
+        return `
+          <div class="room-tile">
+            <div class="room-tile-header">
+              <span class="room-number">Phòng #${r.id}</span>
+              <span class="room-status-badge ${statusClass}">${st}</span>
+            </div>
+            <div style="font-weight:600; font-size:14px; color:#fff;">${escapeHtml(r.roomType)}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${(r.pricePerNight || 0).toLocaleString()} VNĐ/đêm | Sức chứa: ${r.capacity} khách</div>
+            <div style="margin-top:8px; display:flex; gap:6px;">
+              <button class="btn-sm-action btn-checkin" style="flex:1;" onclick="setRoomStatus(${r.id}, 'AVAILABLE')">Sẵn sàng</button>
+              <button class="btn-sm-action" style="background:#eab308; color:black; flex:1;" onclick="setRoomStatus(${r.id}, 'CLEANING')">Dọn dẹp</button>
+              <button class="btn-sm-action" style="background:#64748b; color:white; flex:1;" onclick="setRoomStatus(${r.id}, 'MAINTENANCE')">Bảo trì</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderGuestsList() {
+      const tbody = document.getElementById('guestsTableBody');
+      const guestMap = new Map();
+      allBookings.forEach(b => {
+        const key = b.guestEmail || b.guestPhone;
+        if (!guestMap.has(key)) {
+          guestMap.set(key, { name: b.guestName, email: b.guestEmail, phone: b.guestPhone, count: 0, total: 0 });
+        }
+        const g = guestMap.get(key);
+        g.count++;
+        g.total += (b.totalPrice || 0);
+      });
+
+      const list = Array.from(guestMap.values());
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#7e776f;">Chưa có dữ liệu khách hàng.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(g => `
+        <tr>
+          <td><strong>${escapeHtml(g.name)}</strong></td>
+          <td>${escapeHtml(g.email || 'N/A')}</td>
+          <td>${escapeHtml(g.phone || 'N/A')}</td>
+          <td><span style="color:#60a5fa; font-weight:700;">${g.count} lần</span></td>
+          <td><strong>${g.total.toLocaleString()} VNĐ</strong></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderHandoffTable() {
+      const tbody = document.getElementById('staffHandoffTableBody');
+      if (allHandoffs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#7e776f;">Không có phiếu yêu cầu hỗ trợ nào.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = allHandoffs.map(h => `
+        <tr>
+          <td><strong>#${h.id}</strong></td>
+          <td><strong>${escapeHtml(h.customerName || 'N/A')}</strong></td>
+          <td>📞 ${escapeHtml(h.customerPhone || 'N/A')}<br>✉️ ${escapeHtml(h.customerEmail || 'N/A')}</td>
+          <td>${escapeHtml(h.questionSummary || '')}</td>
+          <td><span class="room-status-badge">${h.status}</span></td>
+          <td>
+            ${h.status === 'PENDING' ? `<button class="btn-sm-action btn-confirm" onclick="claimHandoffTicket(${h.id})">Tiếp nhận</button>` : ''}
+            <a href="/staff-support.html" class="btn-sm-action btn-checkin" style="text-decoration:none; display:inline-block;">Chi tiết</a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function quickCheckIn(bookingId) {
+      if (!confirm(`Xác nhận làm thủ tục Check-in cho đơn ${bookingId}?`)) return;
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/staff/bookings/${bookingId}/check-in`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const d = await res.json();
+        alert(d.message || 'Check-in thành công!');
+        loadAllStaffData();
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    async function quickCheckOut(bookingId) {
+      if (!confirm(`Xác nhận hoàn tất Check-out cho đơn ${bookingId}? Phòng sẽ chuyển sang trạng thái chờ dọn dẹp.`)) return;
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/staff/bookings/${bookingId}/check-out`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const d = await res.json();
+        alert(d.message || 'Check-out hoàn tất!');
+        loadAllStaffData();
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    async function setRoomStatus(roomId, newStatus) {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}/status?status=${newStatus}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          loadAllStaffData();
+        } else {
+          alert('Không thể cập nhật trạng thái phòng.');
+        }
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    async function claimHandoffTicket(id) {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE}/ai/staff/handoffs/${id}/claim`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const d = await res.json();
+        if (d.success) {
+          alert('Tiếp nhận phiếu thành công!');
+          loadAllStaffData();
+        }
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    function searchCheckin() {
+      const query = document.getElementById('checkinSearchInput').value.trim().toLowerCase();
+      const box = document.getElementById('checkinResultBox');
+      if (!query) { box.innerHTML = ''; return; }
+
+      const match = allBookings.find(b => b.bookingId.toLowerCase().includes(query) || (b.guestPhone && b.guestPhone.includes(query)));
+      if (!match) {
+        box.innerHTML = '<div style="color:#ef4444; font-size:13.5px;">Không tìm thấy đơn đặt phòng nào khớp với thông tin.</div>';
+        return;
+      }
+
+      box.innerHTML = `
+        <div style="background:var(--bg-card); border:1px solid #3b82f6; border-radius:10px; padding:20px;">
+          <h3 style="margin-top:0; color:#60a5fa;">Đơn đặt phòng: ${match.bookingId}</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13.5px;">
+            <div><strong>Khách hàng:</strong> ${escapeHtml(match.guestName)}</div>
+            <div><strong>Số điện thoại:</strong> ${escapeHtml(match.guestPhone)}</div>
+            <div><strong>Khách sạn:</strong> ${escapeHtml(match.hotelName)}</div>
+            <div><strong>Hạng phòng:</strong> ${escapeHtml(match.roomType)}</div>
+            <div><strong>Thời gian lưu trú:</strong> ${match.checkIn} đến ${match.checkOut}</div>
+            <div><strong>Tổng thanh toán:</strong> ${(match.totalPrice || 0).toLocaleString()} VNĐ</div>
+            <div><strong>Trạng thái hiện tại:</strong> <span class="room-status-badge">${match.status}</span></div>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn-sm-action btn-checkin" style="padding:9px 20px; font-size:14px;" onclick="quickCheckIn('${match.bookingId}')">✓ Tiến hành Check-in ngay</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterBookings() {
+      const kw = document.getElementById('bookingSearchInput').value.trim().toLowerCase();
+      const st = document.getElementById('bookingStatusSelect').value;
+
+      const filtered = allBookings.filter(b => {
+        const matchKw = !kw || b.bookingId.toLowerCase().includes(kw) || b.guestName.toLowerCase().includes(kw) || (b.guestPhone && b.guestPhone.includes(kw));
+        const matchSt = !st || b.status === st;
+        return matchKw && matchSt;
+      });
+      renderFullBookings(filtered);
+    }
+
+    function filterGuests() {
+      const q = document.getElementById('guestSearchInput').value.trim().toLowerCase();
+      // Refilters guest table
+    }
+
+    function saveShiftNote() {
+      const note = document.getElementById('shiftNoteArea').value;
+      localStorage.setItem('hestora_shift_note', note);
+      alert('Đã lưu nhật ký bàn giao ca thành công!');
+    }
+
+    function showStaffTab(tabId, el) {
+      document.querySelectorAll('.staff-tab-view').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
+
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
+      if (el) el.classList.add('active');
+
+      const titles = {
+        'tabStaffDashboard': 'Dashboard Công Việc Lễ Tân',
+        'tabStaffBookings': 'Quản Lý Danh Sách Đặt Phòng',
+        'tabStaffCheckin': 'Quầy Xử Lý Nhận Phòng (Check-in)',
+        'tabStaffCheckout': 'Quầy Xử Lý Trả Phòng (Check-out)',
+        'tabStaffRooms': 'Tình Trạng & Sơ Đồ Buồng Phòng',
+        'tabStaffGuests': 'Tra Cứu Thông Tin Khách Hàng',
+        'tabStaffHandoff': 'Phiếu Hỗ Trợ Chuyển Tiếp Từ AI',
+        'tabStaffShift': 'Nhật Ký & Bàn Giao Ca Trực',
+        'tabStaffProfile': 'Hồ Sơ Nhân Viên'
+      };
+      document.getElementById('topbarTitle').innerText = titles[tabId] || 'Staff Workspace';
+    }
+
+    function logoutStaff() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/index.html';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', initStaffDashboard);
+  </script>
+</body>
+</html>
+

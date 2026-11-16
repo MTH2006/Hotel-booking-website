@@ -19,7 +19,7 @@ if (-not (Test-Path $pgDataDir)) {
     "hotel_secure_password_2025" | Set-Content -Path $pwFile -NoNewline
     & $initdbExe -D $pgDataDir -U hotel_user -A scram-sha-256 --pwfile=$pwFile -E UTF8 --no-locale | Out-Null
     Remove-Item $pwFile -Force -ErrorAction SilentlyContinue
-    
+
     # Cap nhat pg_hba.conf de cho phep ket noi localhost
     $hbaFile = Join-Path $pgDataDir "pg_hba.conf"
     Add-Content -Path $hbaFile -Value "`nhost all all 127.0.0.1/32 scram-sha-256`nhost all all ::1/128 scram-sha-256`n"

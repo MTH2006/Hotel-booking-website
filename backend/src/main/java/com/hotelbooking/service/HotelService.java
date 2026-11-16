@@ -89,17 +89,30 @@ public class HotelService {
     }
 
     public List<Hotel> getFeaturedHotels() {
+        return hotelRepository.findAll().stream().filter(h -> !Boolean.FALSE.equals(h.getActive())).toList();
+    }
+
+    public List<Hotel> getAllHotels() {
         return hotelRepository.findAll();
     }
 
     public List<Hotel> searchHotels(String query) {
         if (query == null || query.trim().isEmpty()) {
-            return hotelRepository.findAll();
+            return getFeaturedHotels();
         }
-        return hotelRepository.searchHotels(query.trim());
+        return hotelRepository.searchHotels(query.trim()).stream().filter(h -> !Boolean.FALSE.equals(h.getActive())).toList();
     }
 
     public Hotel getHotelById(Long id) {
         return hotelRepository.findById(id).orElse(null);
+    }
+
+    public Hotel saveHotel(Hotel hotel) {
+        hotel.setUpdatedAt(java.time.LocalDateTime.now());
+        return hotelRepository.save(hotel);
+    }
+
+    public void deleteHotel(Long id) {
+        hotelRepository.deleteById(id);
     }
 }

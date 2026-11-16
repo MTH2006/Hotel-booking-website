@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   # ============================================================================
-  # 1. PostgreSQL Database Service
+  # 1. PostgreSQL Database Service [FR-1 to FR-96 Database Engine]
   # ============================================================================
   postgres:
     image: postgres:16-alpine
@@ -28,7 +26,50 @@ services:
       - hotel-network
 
   # ============================================================================
-  # 2. Spring Boot Backend API Service
+  # 2. pgAdmin 4 - Quản lý và Trình bày Database Trực quan
+  # ============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hotel-booking-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@hotelbooking.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-Admin@123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - ./database/pgadmin-servers.json:/pgadmin4/servers.json:ro
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # 3. Apply safe, repeatable updates to existing database volumes
+  # ============================================================================
+  schema-migrate:
+    image: postgres:16-alpine
+    container_name: hotel-booking-schema-migrate
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-hotel_secure_password_2025}
+    volumes:
+      - ./database/migrations/schema_updates.sql:/migrations/schema_updates.sql:ro
+    command:
+      - sh
+      - -c
+      - psql -v ON_ERROR_STOP=1 -h postgres -U ${POSTGRES_USER:-hotel_user} -d ${POSTGRES_DB:-hotel_booking_db} -f /migrations/schema_updates.sql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # 4. Spring Boot Backend API Service
   # ============================================================================
   backend:
     build:
@@ -41,16 +82,23 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-hotel_user}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-hotel_secure_password_2025}
       SERVER_PORT: 8080
+      APP_AUTH_SECRET: ${APP_AUTH_SECRET:-hestora-local-dev-auth-secret-change-before-deploy-2026}
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/hotels/featured || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
-      postgres:
-        condition: service_healthy
+      schema-migrate:
+        condition: service_completed_successfully
     networks:
       - hotel-network
 
   # ============================================================================
-  # 3. Frontend Web Service
+  # 5. Frontend Web Service
   # ============================================================================
   frontend:
     build:
@@ -60,8 +108,12 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - hotel-network
 
@@ -70,6 +122,8 @@ services:
 # ==============================================================================
 volumes:
   hotel_db_data:
+    driver: local
+  pgadmin_data:
     driver: local
 
 networks:

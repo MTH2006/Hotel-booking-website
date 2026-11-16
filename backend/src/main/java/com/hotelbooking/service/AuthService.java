@@ -4,12 +4,13 @@ import com.hotelbooking.dto.AuthRequest;
 import com.hotelbooking.dto.AuthResponse;
 import com.hotelbooking.model.User;
 import com.hotelbooking.repository.UserRepository;
+import com.hotelbooking.security.AuthTokenService;
+import com.hotelbooking.security.PasswordService;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,73 +18,176 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final AuthTokenService tokens;
+    private final PasswordService passwords;
 
-    public AuthService(UserRepository userRepository) {
+    public AuthService(
+            UserRepository userRepository,
+            AuthTokenService tokens,
+            PasswordService passwords) {
+
         this.userRepository = userRepository;
-    }
-
-    private String hashPassword(String password) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing password", e);
-        }
+        this.tokens = tokens;
+        this.passwords = passwords;
     }
 
     @Transactional
     public AuthResponse login(AuthRequest request) {
-        Optional<User> userOpt = userRepository.findByEmail(request.getEmail().toLowerCase().trim());
-        if (userOpt.isEmpty()) {
-            // Auto register on first mock login or throw error
-            return register(request);
+
+        if (request == null
+                || request.getEmail() == null
+                || request.getPassword() == null
+                || request.getPassword().isBlank()) {
+            return denied();
         }
-        User user = userOpt.get();
-        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            String inputHash = hashPassword(request.getPassword());
-            if (!inputHash.equals(user.getPasswordHash())) {
-                return new AuthResponse(false, null, null);
-            }
+
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        Optional<User> found =
+                userRepository.findByEmail(email);
+
+        if (found.isEmpty()) {
+            return denied();
         }
-        String token = "jwt_" + UUID.randomUUID().toString();
-        AuthResponse.UserDto userDto = new AuthResponse.UserDto(user.getUserUuid(), user.getName(), user.getEmail());
-        return new AuthResponse(true, token, userDto);
+
+        User user = found.get();
+
+        // FR-82: Chan tai khoan da bi khoa dang nhap
+        if (!user.isActive()) {
+            return denied();
+        }
+
+        if (!passwords.matches(
+                request.getPassword(),
+                user.getPasswordHash())) {
+            return denied();
+        }
+
+        if (passwords.needsUpgrade(user.getPasswordHash())) {
+            user.setPasswordHash(
+                passwords.hash(request.getPassword())
+            );
+            userRepository.save(user);
+        }
+
+        return granted(user);
     }
 
     @Transactional
     public AuthResponse register(AuthRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
-        Optional<User> existing = userRepository.findByEmail(email);
-        if (existing.isPresent()) {
-            User u = existing.get();
-            String token = "jwt_" + UUID.randomUUID().toString();
-            AuthResponse.UserDto userDto = new AuthResponse.UserDto(u.getUserUuid(), u.getName(), u.getEmail());
-            return new AuthResponse(true, token, userDto);
+
+        if (request == null
+                || request.getEmail() == null
+                || request.getPassword() == null
+                || request.getPassword().length() < 6) {
+            return denied("Vui lòng nhập email hợp lệ và mật khẩu ít nhất 6 ký tự.");
+        }
+
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            return denied("Địa chỉ email chưa đúng định dạng.");
+        }
+        if (userRepository.existsByEmail(email)) {
+            return denied("Email này đã có tài khoản. Hãy chuyển sang tab Đăng nhập.");
         }
 
         String name = request.getName();
-        if (name == null || name.trim().isEmpty()) {
-            name = email.split("@")[0];
+
+        if (name == null || name.isBlank()) {
+            name = email.substring(0, email.indexOf('@'));
         }
 
-        String password = (request.getPassword() != null && !request.getPassword().isEmpty()) 
-                ? request.getPassword() 
-                : "DefaultPass@2025";
-        String passwordHash = hashPassword(password);
-        String uuid = "usr_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        String uuid = "usr_"
+                + UUID.randomUUID()
+                    .toString()
+                    .replace("-", "")
+                    .substring(0, 16);
 
-        User newUser = new User(uuid, name, email, passwordHash, null, "USER");
-        userRepository.save(newUser);
+        User user = new User(
+            uuid,
+            name.trim(),
+            email,
+            passwords.hash(request.getPassword()),
+            null,
+            "USER"
+        );
 
-        String token = "jwt_" + UUID.randomUUID().toString();
-        AuthResponse.UserDto userDto = new AuthResponse.UserDto(uuid, name, email);
-        return new AuthResponse(true, token, userDto);
+        userRepository.save(user);
+
+        return granted(user);
+    }
+
+    // FR-6: Lấy thông tin cá nhân hiện tại
+    public Optional<User> getCurrentUser(String authorization) {
+        return tokens.authenticate(authorization);
+    }
+
+    // FR-7: Cập nhật thông tin tài khoản cá nhân
+    @Transactional
+    public boolean updateProfile(User currentUser, String newName, String newPhone) {
+        if (newName != null && !newName.isBlank()) {
+            currentUser.setName(newName.trim());
+        }
+        if (newPhone != null && !newPhone.isBlank()) {
+            currentUser.setPhone(newPhone.trim());
+        }
+        userRepository.save(currentUser);
+        return true;
+    }
+
+    // FR-8: Đổi mật khẩu
+    @Transactional
+    public boolean changePassword(User currentUser, String oldPassword, String newPassword) {
+        if (oldPassword == null || newPassword == null || newPassword.length() < 6) {
+            return false;
+        }
+        if (!passwords.matches(oldPassword, currentUser.getPasswordHash())) {
+            return false;
+        }
+        currentUser.setPasswordHash(passwords.hash(newPassword));
+        userRepository.save(currentUser);
+        return true;
+    }
+
+    // FR-9: Khôi phục mật khẩu (reset password)
+    @Transactional
+    public boolean resetPassword(String email, String newPassword) {
+        if (email == null || newPassword == null || newPassword.length() < 6) return false;
+        Optional<User> userOpt = userRepository.findByEmail(email.trim().toLowerCase(Locale.ROOT));
+        if (userOpt.isEmpty()) return false;
+        User user = userOpt.get();
+        user.setPasswordHash(passwords.hash(newPassword));
+        userRepository.save(user);
+        return true;
+    }
+
+    private AuthResponse granted(User user) {
+
+        AuthResponse.UserDto dto =
+            new AuthResponse.UserDto(
+                user.getUserUuid(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole()
+            );
+
+        return new AuthResponse(
+            true,
+            tokens.issue(user),
+            dto
+        );
+    }
+
+    private AuthResponse denied() {
+        return new AuthResponse(false, null, null);
+    }
+
+    private AuthResponse denied(String message) {
+        return new AuthResponse(false, null, null, message);
     }
 }
