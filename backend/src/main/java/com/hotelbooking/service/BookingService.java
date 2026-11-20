@@ -36,6 +36,16 @@ public class BookingService {
     @Autowired(required = false)
     private PromotionService promotionService;
 
+    
+    // FR-93: Luu thong bao thay doi va huy dat phong
+    @Autowired(required = false)
+    private BookingChangeNotificationPersistenceService
+            bookingChangePersistenceService;
+    
+@Autowired(required = false)
+private BookingConfirmationNotificationPersistenceService
+        bookingConfirmationPersistenceService;
+
     @Autowired
     public BookingService(
             BookingRepository bookingRepository,
@@ -158,15 +168,21 @@ public class BookingService {
         Booking saved = bookingRepository.save(booking);
         log.info("Booking created successfully: ID={}, Code={}", saved.getId(), saved.getBookingId());
 
-        // 8. Kích hoạt thông báo xác nhận [FR-91]
-        try {
-            if (notificationService != null) {
-                notificationService.buildBookingConfirmation(saved);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to generate booking confirmation notification: {}", e.getMessage());
-        }
+        // 8. FR-91: Luu thong bao khi dat phong thanh cong
+        if (bookingConfirmationPersistenceService != null) {
+            bookingConfirmationPersistenceService
+                    .saveBookingConfirmationNotification(saved);
 
+            log.info(
+                    "FR-91: Saved booking confirmation notification for {}",
+                    saved.getBookingId()
+            );
+        } else {
+            log.warn(
+                    "FR-91: Notification persistence service is unavailable for {}",
+                    saved.getBookingId()
+            );
+        }
         return saved;
     }
 
@@ -214,12 +230,15 @@ public class BookingService {
             b.setStatus(Booking.BookingStatus.CANCELLED);
             bookingRepository.save(b);
 
-            try {
-                if (changeNotificationService != null) {
-                    changeNotificationService.buildCancellationNotification(b);
-                }
-            } catch (Exception e) {
-                log.warn("Failed to generate cancel notification: {}", e.getMessage());
+            // FR-93: Luu thong bao huy don dat phong
+            if (bookingChangePersistenceService != null) {
+                bookingChangePersistenceService
+                        .saveBookingCancellationNotification(b);
+
+                log.info(
+                        "FR-93: Saved cancellation notification for {}",
+                        b.getBookingId()
+                );
             }
             return true;
         }
@@ -235,12 +254,16 @@ public class BookingService {
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         Booking saved = bookingRepository.save(booking);
 
-        try {
-            if (changeNotificationService != null) {
-                changeNotificationService.buildCancellationNotification(saved);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to generate cancel notification: {}", e.getMessage());
+        
+        // FR-93: Luu thong bao huy don theo ID
+        if (bookingChangePersistenceService != null) {
+            bookingChangePersistenceService
+                    .saveBookingCancellationNotification(saved);
+
+            log.info(
+                    "FR-93: Saved cancellation notification for {}",
+                    saved.getBookingId()
+            );
         }
         return saved;
     }
@@ -260,28 +283,114 @@ public class BookingService {
         return true;
     }
 
+    
+    // FR-93: Cap nhat trang thai va luu thong bao
     @Transactional
     public Booking updateStatus(Long id, String newStatus, String reason) {
+
         Booking booking = getBookingById(id);
+
+        // Luu trang thai cu truoc khi thay doi
+        Booking before = new Booking();
+        before.setBookingId(booking.getBookingId());
+        before.setStatus(booking.getStatus());
+        before.setCheckIn(booking.getCheckIn());
+        before.setCheckOut(booking.getCheckOut());
+        before.setRoomType(booking.getRoomType());
+        before.setTotalPrice(booking.getTotalPrice());
+
+        // Cap nhat trang thai moi
         booking.setStatus(newStatus);
+
         if (reason != null && !reason.isBlank()) {
             booking.setCancellationReason(reason);
         }
-        return bookingRepository.save(booking);
+
+        Booking saved = bookingRepository.save(booking);
+
+        // Chi tao thong bao khi trang thai thay doi
+        if (bookingChangePersistenceService != null
+                && !java.util.Objects.equals(
+                        before.getStatus(),
+                        saved.getStatus())) {
+
+            if ("CANCELLED".equalsIgnoreCase(saved.getStatus())) {
+                bookingChangePersistenceService
+                        .saveBookingCancellationNotification(saved);
+            } else {
+                bookingChangePersistenceService
+                        .saveBookingUpdateNotification(before, saved);
+            }
+
+            log.info(
+                    "FR-93: Saved status change notification for {}",
+                    saved.getBookingId()
+            );
+        }
+
+        return saved;
     }
 
+    
+    // FR-93: Cap nhat trang thai theo bookingId va luu thong bao
     @Transactional
-    public Booking updateStatusByBookingId(String bookingId, String newStatus, String reason) {
+    public Booking updateStatusByBookingId(
+            String bookingId,
+            String newStatus,
+            String reason) {
+
         Booking booking = getBookingById(bookingId);
+
         if (booking == null) {
-            throw new RuntimeException("Không tìm thấy đơn đặt phòng: " + bookingId);
+            throw new RuntimeException(
+                    "Không tìm thấy đơn đặt phòng: " + bookingId
+            );
         }
+
+        // Luu thong tin truoc khi thay doi
+        Booking before = new Booking();
+        before.setBookingId(booking.getBookingId());
+        before.setStatus(booking.getStatus());
+        before.setCheckIn(booking.getCheckIn());
+        before.setCheckOut(booking.getCheckOut());
+        before.setRoomType(booking.getRoomType());
+        before.setTotalPrice(booking.getTotalPrice());
+
+        // Cap nhat trang thai moi
         booking.setStatus(newStatus);
+
         if (reason != null && !reason.isBlank()) {
             booking.setCancellationReason(reason);
         }
-        return bookingRepository.save(booking);
+
+        Booking saved = bookingRepository.save(booking);
+
+        // Chi luu thong bao khi trang thai thuc su thay doi
+        if (bookingChangePersistenceService != null
+                && !java.util.Objects.equals(
+                        before.getStatus(),
+                        saved.getStatus())) {
+
+            if ("CANCELLED".equalsIgnoreCase(saved.getStatus())) {
+
+                bookingChangePersistenceService
+                        .saveBookingCancellationNotification(saved);
+
+            } else {
+
+                bookingChangePersistenceService
+                        .saveBookingUpdateNotification(before, saved);
+            }
+
+            log.info(
+                    "FR-93: Saved status change notification for {}",
+                    saved.getBookingId()
+            );
+        }
+
+        return saved;
     }
+
 
     public List<Booking> searchStaffBookings(String keyword, Long hotelId, String status) {
         return bookingRepository.searchStaffBookings(keyword, hotelId, status);
