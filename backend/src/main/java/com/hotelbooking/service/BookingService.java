@@ -287,3 +287,16 @@ public class BookingService {
         return bookingRepository.searchStaffBookings(keyword, hotelId, status);
     }
 }
+private void validateTransition(String currentStatus, String newStatus) {
+        if (currentStatus == null || newStatus == null) return;
+        if (Booking.BookingStatus.COMPLETED.equals(currentStatus) && !Booking.BookingStatus.COMPLETED.equals(newStatus)) {
+            throw new IllegalStateException("Đơn đã hoàn tất (COMPLETED) không thể chuyển sang trạng thái khác.");
+        }
+        if (Booking.BookingStatus.CANCELLED.equals(currentStatus) && !Booking.BookingStatus.CANCELLED.equals(newStatus)) {
+            throw new IllegalStateException("Đơn đã hủy (CANCELLED) không thể khôi phục trực tiếp.");
+        }
+        if (Booking.BookingStatus.CHECKED_IN.equals(currentStatus)
+                && Booking.BookingStatus.PENDING.equals(newStatus)) {
+            throw new IllegalStateException("Đơn đã nhận phòng (CHECKED_IN) không thể quay về PENDING.");
+        }
+    }
