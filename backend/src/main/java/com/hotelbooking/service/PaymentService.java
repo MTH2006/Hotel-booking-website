@@ -64,15 +64,23 @@ public class PaymentService {
         booking.setPaymentStatus("PAID");
         bookingRepository.save(booking);
 
-        // Kích hoạt thông báo thanh toán [FR-92]
-        try {
-            if (notificationService != null) {
-                notificationService.buildPaymentSuccessNotification(bookingId, amount);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to generate payment notification: {}", e.getMessage());
-        }
+        // FR-92: Luu thong bao thanh toan vao PostgreSQL
+        if (notificationService != null) {
+            notificationService.savePaymentSuccessNotification(
+                    booking,
+                    saved.getAmount()
+            );
 
+            log.info(
+                    "FR-92: Saved payment notification for booking {}",
+                    booking.getBookingId()
+            );
+        } else {
+            log.warn(
+                    "FR-92: Payment notification service is unavailable for {}",
+                    booking.getBookingId()
+            );
+        }       
         return saved;
     }
 

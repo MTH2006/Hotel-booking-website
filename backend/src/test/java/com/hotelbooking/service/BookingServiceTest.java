@@ -117,5 +117,220 @@ public class BookingServiceTest {
         assertTrue(cancelled);
         assertEquals(Booking.BookingStatus.CANCELLED, booking.getStatus());
     }
+    
+    // FR-91: Kiem tra tu dong luu thong bao khi dat phong thanh cong
+    @Test
+    void testFr91SaveBookingConfirmationNotification() {
+        BookingConfirmationNotificationPersistenceService persistenceService =
+                mock(BookingConfirmationNotificationPersistenceService.class);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                bookingService,
+                "bookingConfirmationPersistenceService",
+                persistenceService
+        );
+
+        Booking booking = new Booking();
+        booking.setBookingId("HB-FR91-001");
+        booking.setGuestName("Nguyen Van A");
+        booking.setGuestEmail("customer@example.com");
+        booking.setCheckIn(LocalDate.now().plusDays(2));
+        booking.setCheckOut(LocalDate.now().plusDays(4));
+        booking.setTotalPrice(2000000L);
+
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Booking saved = bookingService.createBooking(booking);
+
+        assertNotNull(saved);
+
+        verify(persistenceService, times(1))
+                .saveBookingConfirmationNotification(same(saved));
+    }
+    
+    // FR-93: Luu thong bao khi huy don bang bookingId
+    @Test
+    void shouldSaveCancellationNotificationByBookingId() {
+        Booking booking = new Booking();
+        booking.setBookingId("HB-FR93-001");
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+
+        BookingChangeNotificationPersistenceService persistenceService =
+                mock(BookingChangeNotificationPersistenceService.class);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                bookingService,
+                "bookingChangePersistenceService",
+                persistenceService
+        );
+
+        when(bookingRepository.findByBookingId("HB-FR93-001"))
+                .thenReturn(Optional.of(booking));
+
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        boolean result = bookingService.cancelBooking("HB-FR93-001");
+
+        assertTrue(result);
+        assertEquals(
+                Booking.BookingStatus.CANCELLED,
+                booking.getStatus()
+        );
+
+        verify(persistenceService, times(1))
+                .saveBookingCancellationNotification(same(booking));
+    }
+
+    // FR-93: Luu thong bao khi huy don bang ID
+    @Test
+    void shouldSaveCancellationNotificationById() {
+        Booking booking = new Booking();
+        booking.setId(201L);
+        booking.setBookingId("HB-FR93-002");
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+
+        BookingChangeNotificationPersistenceService persistenceService =
+                mock(BookingChangeNotificationPersistenceService.class);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                bookingService,
+                "bookingChangePersistenceService",
+                persistenceService
+        );
+
+        when(bookingRepository.findById(201L))
+                .thenReturn(Optional.of(booking));
+
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Booking result = bookingService.cancelBooking(201L);
+
+        assertNotNull(result);
+        assertEquals(
+                Booking.BookingStatus.CANCELLED,
+                result.getStatus()
+        );
+
+        verify(persistenceService, times(1))
+                .saveBookingCancellationNotification(same(result));
+    }
+
+    // FR-93: Cap nhat trang thai theo ID phai luu thong bao
+    @Test
+    void shouldNotifyWhenUpdatingStatusById() {
+        Booking booking = new Booking();
+        booking.setId(301L);
+        booking.setBookingId("HB-FR93-301");
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+
+        BookingChangeNotificationPersistenceService persistence =
+                mock(BookingChangeNotificationPersistenceService.class);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                bookingService,
+                "bookingChangePersistenceService",
+                persistence
+        );
+
+        when(bookingRepository.findById(301L))
+                .thenReturn(Optional.of(booking));
+
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.updateStatus(
+                301L, "CHECKED_IN", null
+        );
+
+        assertEquals("CHECKED_IN", result.getStatus());
+
+        verify(persistence, times(1))
+                .saveBookingUpdateNotification(
+                        argThat(before ->
+                                "CONFIRMED".equals(before.getStatus())
+                                && "HB-FR93-301".equals(
+                                        before.getBookingId()
+                                )
+                        ),
+                        same(result)
+                );
+    }
+
+    // FR-93: Huy don theo bookingId phai luu thong bao huy
+    @Test
+    void shouldNotifyWhenCancellingByUpdateStatus() {
+        Booking booking = new Booking();
+        booking.setBookingId("HB-FR93-302");
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+
+        BookingChangeNotificationPersistenceService persistence =
+                mock(BookingChangeNotificationPersistenceService.class);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                bookingService,
+                "bookingChangePersistenceService",
+                persistence
+        );
+
+        when(bookingRepository.findByBookingId("HB-FR93-302"))
+                .thenReturn(Optional.of(booking));
+
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.updateStatusByBookingId(
+                "HB-FR93-302", "CANCELLED", "Khach yeu cau huy"
+        );
+
+        assertEquals(
+                Booking.BookingStatus.CANCELLED,
+                result.getStatus()
+        );
+
+        verify(persistence, times(1))
+                .saveBookingCancellationNotification(same(result));
+
+        verify(persistence, never())
+                .saveBookingUpdateNotification(
+                        any(Booking.class),
+                        any(Booking.class)
+                );
+    }
+
+    // FR-93: Khong tao thong bao neu trang thai khong doi
+    @Test
+    void shouldNotNotifyWhenStatusUnchanged() {
+        Booking booking = new Booking();
+        booking.setId(303L);
+        booking.setBookingId("HB-FR93-303");
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+
+        BookingChangeNotificationPersistenceService persistence =
+                mock(BookingChangeNotificationPersistenceService.class);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                bookingService,
+                "bookingChangePersistenceService",
+                persistence
+        );
+
+        when(bookingRepository.findById(303L))
+                .thenReturn(Optional.of(booking));
+
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.updateStatus(
+                303L, "CONFIRMED", null
+        );
+
+        assertEquals("CONFIRMED", result.getStatus());
+
+        verifyNoInteractions(persistence);
+    }
+
 }
 
