@@ -93,7 +93,7 @@ public class AuthService {
             return denied("Địa chỉ email chưa đúng định dạng.");
         }
         if (userRepository.existsByEmail(email)) {
-            return denied("Email này đã có tài khoản. Hãy chuyển sang tab Đăng nhập.");
+            return denied("Email này đã có tài khoản. Hãy đăng nhập hoặc chọn Quên mật khẩu.");
         }
 
         String name = request.getName();
